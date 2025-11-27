@@ -18,6 +18,10 @@
         --glass: rgba(255,255,255,0.8);
         --glass-border: rgba(0,0,0,0.08);
         --glass-text: rgba(15,23,42,0.94);
+        /* Tamaños de botones principales (fácil de personalizar) */
+        --top-btn-height: 64px; /* altura por defecto */
+        --top-btn-max-width: 360px; /* anchura máxima por botón */
+        --top-btn-font-size: 14px; /* tamaño de la tipografía dentro del botón */
     }
     html,body{height:100%;margin:0;}
     /* ligera escala global para que la interfaz quepa mejor en pantallas grandes */
@@ -173,7 +177,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         grid-template-rows: auto auto;
-        gap: 24px 48px;
+        gap: 24px 300px; /* aumentado espacio horizontal entre botones */
         width: 100%;
         max-width: 100%;
         margin: 0 auto;
@@ -311,10 +315,12 @@
 
     /* Botones principales (top-controls) — más altos y con acento superior */
     .top-controls .color-box{
-        flex: 0 0 220px; /* tamaño reducido para liberar espacio horizontal */
-        height: 64px; /* ligeramente más compacto */
+        /* Usar anchura fluida dentro de la celda del grid y limitar por max-width */
+        width: 100%;
+        max-width: var(--top-btn-max-width);
+        height: var(--top-btn-height);
         padding: 0 14px;
-        font-size: 14px; /* letra más legible */
+        font-size: var(--top-btn-font-size);
         letter-spacing: 0.6px;
         font-weight: 700;
         box-shadow: 0 12px 36px rgba(3,7,18,0.16);
@@ -323,6 +329,8 @@
         align-items: center;
         justify-content: center;
         text-align: center;
+        justify-self: stretch; /* ocupar todo el ancho de la celda */
+        align-self: center;
     }
     .top-controls .color-box::before{
         content: '';
