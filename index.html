@@ -1495,6 +1495,100 @@
 
     });
     </script>
+    <!-- Firebase realtime sync (Firestore) - inicialización y listeners -->
+    <!-- SDKs: compat version to integrate easily with existing inline scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script>
+    (function(){
+        // Config proporcionada por el usuario (desde la consola Firebase)
+        const firebaseConfig = {
+          apiKey: "AIzaSyDhSuWPakadOZcsTiSwy_JMfTyZ-ML4eI4",
+          authDomain: "indexvidrio.firebaseapp.com",
+          projectId: "indexvidrio",
+          storageBucket: "indexvidrio.firebasestorage.app",
+          messagingSenderId: "937199809438",
+          appId: "1:937199809438:web:13a7e19799fd16f08edc8f",
+          measurementId: "G-R0R2V42V1R"
+        };
+
+        try{
+            firebase.initializeApp(firebaseConfig);
+        }catch(e){ console.warn('Firebase init warning', e); }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sign in anonymously so Firestore rules that require auth work during testing
+        auth.signInAnonymously().catch(e=>{ console.warn('Firebase anonymous auth failed', e); });
+
+        const stateDoc = db.collection('ui').doc('pk_state');
+
+        // Listener en tiempo real: cuando cambie el documento remoto, aplicamos cambios al DOM
+        stateDoc.onSnapshot(doc => {
+            if(!doc.exists) return;
+            const data = doc.data() || {};
+            try{
+                if(data.pk_lines && window.applyLinesToDOM) window.applyLinesToDOM(data.pk_lines);
+            }catch(e){ console.error('applyLinesToDOM error', e); }
+            try{
+                if(data.pk_requested){
+                    localStorage.setItem('pk_requested', JSON.stringify(data.pk_requested));
+                    if(window.applyRequestedToDOM) window.applyRequestedToDOM();
+                }
+            }catch(e){ console.error('applyRequested error', e); }
+            try{
+                if(data.pk_solicitud_salida){
+                    localStorage.setItem('pk_solicitud_salida', JSON.stringify(data.pk_solicitud_salida));
+                    if(window.ensureTimerElements) window.ensureTimerElements();
+                    if(window.updateColumnTimers) window.updateColumnTimers();
+                    if(window.updateSolicitudDurationsDisplay) window.updateSolicitudDurationsDisplay();
+                }
+            }catch(e){ console.error('applySolicitud error', e); }
+        }, err => console.error('stateDoc snapshot error', err));
+
+        // Debounced save to avoid escrituras masivas
+        let _saveTimeout = null;
+        function saveStateToRemoteDebounced(state){
+            if(_saveTimeout) clearTimeout(_saveTimeout);
+            _saveTimeout = setTimeout(()=>{
+                try{ stateDoc.set(state, { merge: true }).catch(e=>console.error('remote set failed', e)); }catch(e){ console.error(e); }
+            }, 420);
+        }
+
+        // Exponer helper global para guardar el estado actual en remoto
+        window.saveStateToRemote = function(){
+            try{
+                const state = {
+                    pk_lines: window.getStateFromDOM ? window.getStateFromDOM() : JSON.parse(localStorage.getItem('pk_lines')||'[]'),
+                    pk_requested: JSON.parse(localStorage.getItem('pk_requested')||'{}'),
+                    pk_solicitud_salida: JSON.parse(localStorage.getItem('pk_solicitud_salida')||'{}')
+                };
+                saveStateToRemoteDebounced(state);
+            }catch(e){ console.error('saveStateToRemote wrapper failed', e); }
+        };
+
+        // Hookear funciones locales para que también persistan al remoto
+        try{
+            const originalSave = window.saveState;
+            window.saveState = function(){
+                try{ if(typeof originalSave === 'function') originalSave(); }catch(e){ console.warn('original saveState failed', e); }
+                try{ window.saveStateToRemote(); }catch(e){ console.warn('saveStateToRemote failed', e); }
+            };
+        }catch(e){ console.warn('hook saveState failed', e); }
+
+        try{
+            const originalSaveReq = window.saveRequestedMap;
+            window.saveRequestedMap = function(map){
+                try{ if(typeof originalSaveReq === 'function') originalSaveReq(map); }catch(e){ console.warn('original saveRequestedMap failed', e); }
+                try{ saveStateToRemoteDebounced({ pk_requested: map || JSON.parse(localStorage.getItem('pk_requested')||'{}') }); }catch(e){ console.warn('remote saveRequestedMap failed', e); }
+            };
+        }catch(e){ console.warn('hook saveRequestedMap failed', e); }
+
+        console.log('Firebase realtime sync initialized (Firestore).');
+    })();
+    </script>
     <!-- Barcode / naming modal -->
     <div id="barcode-modal" class="barcode-modal" aria-hidden="true">
         <h3>Abastecer Kamban — escanea o escribe nombre</h3>
