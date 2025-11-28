@@ -24,6 +24,9 @@
         --top-btn-font-size: 14px; /* tamaño de la tipografía dentro del botón */
     }
     html,body{height:100%;margin:0;}
+    /* Ocultar barras de scroll - navegación solo con mouse */
+    ::-webkit-scrollbar { display:none; }
+    html { -ms-overflow-style:none; scrollbar-width:none; }
     /* ligera escala global para que la interfaz quepa mejor en pantallas grandes */
     body {
         transform: scale(1);
@@ -248,25 +251,25 @@
         .floating-actions{ position: fixed; left: 18px; top: 18px; display:flex; flex-direction:column; gap:10px; z-index:120 }
         /* Botones flotantes: más grandes y dispositivos amigables */
         .floating-actions button{
-            min-width:160px;           /* anchura mínima mayor para que quepan 2 palabras */
-            width:auto;                /* dejar que el contenido y el container gestionen el tamaño */
-            height:56px;               /* alto aumentado para mejor legibilidad */
-            padding:10px 14px;         /* más padding para separar el texto del borde */
-            border-radius:12px;        /* borde un poco más redondeado */
+            min-width:110px;           /* anchura mínima reducida */
+            width:auto;
+            height:40px;               /* altura reducida */
+            padding:6px 10px;          /* menos padding */
+            border-radius:10px;
             border:none;
-            font-weight:700;
+            font-weight:600;
             color:white;
             background: linear-gradient(90deg,#3b82f6,#2563eb);
-            box-shadow: 0 12px 30px rgba(37,99,235,0.14);
+            box-shadow: 0 8px 18px rgba(37,99,235,0.12);
             cursor:pointer;
             transition: transform 120ms ease, box-shadow 120ms ease;
-            display:flex;              /* permitir centrar multilinea */
+            display:flex;
             align-items:center;
             justify-content:center;
             text-align:center;
-            white-space:normal;       /* permitir salto de línea natural */
-            line-height:1.05;         /* compactar ligeramente la altura de línea */
-            font-size:15px;           /* tamaño de texto aumentado */
+            white-space:normal;
+            line-height:1.05;
+            font-size:13px;            /* tamaño de texto reducido */
         }
         .floating-actions button:hover{ transform: translateY(-3px); box-shadow: 0 16px 36px rgba(37,99,235,0.16); }
         /* make export button same color / look as manage button */
@@ -279,15 +282,13 @@
         /* responsive for top-controls: keep compact info usable on small screens */
         @media (max-width:900px){
             .top-controls{ grid-template-columns: repeat(2,1fr); gap:12px 12px }
-            /* en móvil colocamos la info compacta de forma estática debajo de los botones */
-            .top-controls .top-info-compact{ position:static; top:auto; right:auto; grid-column: 1 / -1; justify-self:center; width:100%; max-width:100%; padding:8px }
         }
 
         /* floating history card (moved más a la derecha para separar de los botones) */
           /* hacer el panel un poco más pequeño y desplazado ligeramente hacia la derecha
               para que no se superponga con el botón "ABASTECER KAMBAN" */
         /* con el panel lateral eliminado, acercamos el histórico al borde izquierdo */
-        .floating-history{ position: fixed; left: 18px; top: 18px; width: 300px; z-index:115; }
+        .floating-history{ position: fixed; left: 18px; top: 200px; width: 320px; z-index:115; }
         .floating-history .history-controls{ display:flex; gap:6px; align-items:center; justify-content:space-between; margin-bottom:6px }
         .floating-history .drag-handle{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:grab; display:inline-flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); }
         .floating-history .drag-handle:active{ cursor:grabbing }
@@ -315,7 +316,7 @@
         #recent-history-list::-webkit-scrollbar-thumb{ background: rgba(0,0,0,0.12); border-radius:8px }
         #recent-history-list::-webkit-scrollbar-track{ background:transparent }
         /* centrar verticalmente los botones de navegación respecto a la tarjeta visible */
-        #recent-history .recent-nav{ position:absolute; right:8px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:6px; z-index:130 }
+        #recent-history .recent-nav{ position:absolute; right:8px; top:50%; transform:translateY(-50%); display:none; flex-direction:column; gap:6px; z-index:130 }
         #recent-history .recent-nav button{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); }
         #recent-history .recent-nav button:hover{ background: rgba(11,18,32,0.10); transform: translateY(-2px); }
         @media (max-width:900px){ .floating-history{ position: static; margin: 8px 0 12px 0; width: auto; left: auto } }
@@ -707,26 +708,6 @@
     /* mover la info compacta a un lugar fijo en la esquina superior derecha
        para que NO cambie la ubicación original de los botones */
     .top-controls .top-info-compact{
-        position: fixed;
-        top: 18px;
-        right: 18px;
-        z-index: 130;
-        background: rgba(255,255,255,0.98);
-        padding:8px 10px;
-        border-radius: 10px;
-        border:1px solid rgba(0,0,0,0.06);
-        box-shadow: 0 8px 18px rgba(2,6,23,0.06);
-        min-width: 170px;
-        max-width: 260px;
-        box-sizing: border-box;
-        text-align: left;
-        font-size: 12px;
-        color: var(--glass-text);
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-        align-items:flex-start;
-        /* User requested this panel to be hidden — override here */
         display: none !important;
     }
     .top-controls .top-info-compact .now{ font-weight:700; font-size:13px; margin-bottom:4px }
@@ -753,26 +734,12 @@
     </div>
     <!-- floating history card to the right of actions (keeps same IDs so JS still works) -->
     <div id="floating-history" class="floating-history" aria-live="polite">
-        <div class="history-controls" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="display:flex;gap:8px;align-items:center">
-                <button class="drag-handle" aria-label="Mover historial" title="Mover" type="button">≡</button>
-                <div style="font-weight:700; font-size:13px">Historial</div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-                <button id="floating-history-reset" class="history-reset" title="Resetear posición" aria-label="Resetear posición">⤾</button>
-                <button id="btn-test-history" class="btn" title="Probar historial" style="padding:6px 8px;font-size:12px;margin-left:6px">Probar historial</button>
-            </div>
-        </div>
-        <div class="search-row" style="margin-bottom:8px">
-            <input id="order-search" class="search-input" type="search" placeholder="Buscar en historial (ej. 12721111)" aria-label="Buscar en historial" />
-            <button id="order-search-clear" class="search-clear" title="Limpiar búsqueda">✕</button>
-        </div>
         <div id="recent-history" class="history-card small-box" aria-live="polite">
             <div style="font-weight:700;margin-bottom:6px">Últimos 5 parciales abastecidos</div>
             <!-- top-info previously here — moved to top-controls as compact version -->
             <div class="recent-list-wrap" style="position:relative">
                 <ul id="recent-history-list"></ul>
-                <div class="recent-nav" aria-hidden="false">
+                <div class="recent-nav" aria-hidden="true" style="display:none;">
                     <button id="recent-prev" aria-label="Ver anterior">▲</button>
                     <button id="recent-next" aria-label="Ver siguiente">▼</button>
                 </div>
@@ -797,7 +764,7 @@
             <button id="m-btn-close" class="btn" style="margin-left:auto">Cerrar</button>
         </div>
     </aside>
-    <h1 class="title">Estado y solicitud de parciales,kamban descartonado de vidrio</h1>
+    <h1 class="title" style="font-size:32px; font-weight:800; margin-top:18px; margin-bottom:18px; text-align:center; letter-spacing:1px; background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65)); color:#0f172a;">ESTATUS FLUJO PACIALES DE VIDRIO</h1>
     <!-- (removed stray closing tag that broke DOM structure) -->
     <script>
     // wire the visible "Probar historial" button (creates a test entry and updates the UI)
@@ -878,6 +845,26 @@
                 hist = hist.slice(-200);
                 localStorage.setItem('pk_history', JSON.stringify(hist));
                 try{ window.historialModule && window.historialModule.renderizar(); }catch(e){}
+                // Also persist to Firestore if available
+                try{
+                    if(window.saveHistorial && typeof window.saveHistorial === 'function'){
+                        entries.forEach(async (ent)=>{
+                            try{
+                                // normalize field names expected by Firestore
+                                const payload = {
+                                    name: ent.name || '',
+                                    line: ent.line || ent.linea || '',
+                                    index: ent.index != null ? ent.index : null,
+                                    requestedAt: ent.requestedAt || ent.solicitud || null,
+                                    suppliedAt: ent.suppliedAt || ent.entrega || null,
+                                    duration: ent.duration != null ? ent.duration : ent.tiempo || null,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                };
+                                await window.saveHistorial(payload);
+                            }catch(e){ console.warn('saveHistorial failed', e); }
+                        });
+                    }
+                }catch(e){ console.warn('addHistoryEntries -> firestore save failed', e); }
             }catch(err){ console.error('addHistoryEntries failed', err); }
         }
         // llenar la lista desplegable con las líneas actuales
@@ -1287,6 +1274,13 @@
             try{ saveState(); }catch(e){ /* ignore */ }
             // re-apply requested map just in case
             try{ applyRequestedToDOM(); }catch(e){}
+            // Persist to Firestore if possible
+            try{
+                const payload = { nombre: blockLabel || (lineName + '#' + String(idx)), linea: lineName, estado: 'disponible', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                if(window.saveParcial && typeof window.saveParcial === 'function'){
+                    window.saveParcial(payload).then(docRef => { console.log('Parcial sync saved id=', docRef.id); }).catch(e => console.warn('saveParcial failed', e));
+                }
+            }catch(e){ console.warn('addPartial firestore save failed', e); }
         }
 
         async function removePartial(name){
@@ -1773,52 +1767,102 @@
     </script>
     <!-- Firebase realtime sync (Firestore) - inicialización y listeners -->
     <!-- SDKs: compat version to integrate easily with existing inline scripts -->
+    <!-- Firebase SDK v9 modular -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script>
-    (function(){
-        // Config proporcionada por el usuario (desde la consola Firebase)
-        // exponemos la config en window para que los módulos (./firebase.js y ./Historial.firebase.js)
-        // puedan consumirla desde un <script type="module"> más abajo.
-        window.FIREBASE_CONFIG = {
-          apiKey: "AIzaSyDhSuWPakadOZcsTiSwy_JMfTyZ-ML4eI4",
-          authDomain: "indexvidrio.firebaseapp.com",
-          projectId: "indexvidrio",
-          storageBucket: "indexvidrio.firebasestorage.app",
-          messagingSenderId: "937199809438",
-          appId: "1:937199809438:web:13a7e19799fd16f08edc8f",
-          measurementId: "G-R0R2V42V1R"
+    // Configuración: reemplaza estos valores por los de tu proyecto Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhSuWPakadOZcsTiSwy_JMfTyZ-ML4eI4",
+        authDomain: "indexvidrio.firebaseapp.com",
+        databaseURL: "https://indexvidrio-default-rtdb.firebaseio.com",
+        projectId: "indexvidrio",
+        storageBucket: "indexvidrio.firebasestorage.app",
+        messagingSenderId: "937199809438",
+        appId: "1:937199809438:web:13a7e19799fd16f08edc8f",
+        measurementId: "G-R0R2V42V1R"
+    };
+
+    // Inicializa Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Autenticación anónima para pruebas (puedes cambiarlo por login real)
+    auth.signInAnonymously().catch(e => console.warn('Firebase anonymous auth failed', e));
+
+    // Función para guardar un parcial abastecido
+    async function saveParcial(parcial) {
+        // parcial: {nombre, linea, fecha, estado, ...}
+        return db.collection('parciales').add(parcial);
+    }
+
+    // Función para guardar historial
+    async function saveHistorial(historial) {
+        // historial: {orden, linea, fechaSolicitud, fechaEntrega, tiempo}
+        return db.collection('historial').add(historial);
+    }
+
+    // Funciones para actualizar estado de solicitud, anulación, abastecimiento, etc.
+    async function updateParcialEstado(id, estado) {
+        return db.collection('parciales').doc(id).update({estado});
+    }
+
+    // --- Listeners: se adjuntan SOLO después de autenticación para evitar permission-denied ---
+    function attachFirestoreListeners(){
+        console.log('Attaching Firestore listeners...');
+
+        db.collection('parciales').onSnapshot(snapshot => {
+            const parciales = [];
+            snapshot.forEach(doc => parciales.push({...doc.data(), id: doc.id}));
+            try{ window.renderParciales && window.renderParciales(parciales); }catch(e){ console.warn('renderParciales failed', e); }
+        }, err => { console.error('parciales snapshot error', err); });
+
+        db.collection('historial').orderBy('fechaEntrega', 'desc').limit(5).onSnapshot(snapshot => {
+            const historial = [];
+            snapshot.forEach(doc => historial.push({...doc.data(), id: doc.id}));
+            try{ window.renderRecentHistory && window.renderRecentHistory(historial); }catch(e){ console.warn('renderRecentHistory failed', e); }
+        }, err => { console.error('historial snapshot error', err); });
+
+        db.collection('solicitudes').onSnapshot(snapshot => {
+            const solicitudes = [];
+            snapshot.forEach(doc => solicitudes.push({...doc.data(), id: doc.id}));
+            try{ window.renderSolicitudes && window.renderSolicitudes(solicitudes); }catch(e){ /* optional */ }
+        }, err => { console.error('solicitudes snapshot error', err); });
+    }
+
+    // Esperar autenticación antes de conectar listeners
+    auth.onAuthStateChanged(user => {
+        if(user){
+            console.log('Firebase auth ready — uid:', user.uid);
+            attachFirestoreListeners();
+        } else {
+            console.log('No auth - signing in anonymously...');
+            auth.signInAnonymously().catch(e => console.warn('Anonymous sign-in failed', e));
+        }
+    });
+
+    // Puedes agregar más funciones según la lógica de tu app
+    // Exponer helpers para pruebas desde la consola del navegador
+    try{
+        window.saveParcial = saveParcial;
+        window.saveHistorial = saveHistorial;
+        window.testSaveParcial = async function(){
+            try{
+                const doc = await saveParcial({ nombre: 'TEST-' + Date.now(), linea: 'PKB1', estado: 'abastecido', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                console.log('Parcial guardado, id=', doc.id);
+            }catch(e){ console.error('testSaveParcial failed', e); }
         };
-
-                // Config provista por el usuario — Firebase web app (pegar cadena exactamente como en consola)
-                window.FIREBASE_CONFIG = {
-                    apiKey: "AIzaSyAvvv7A9y91tyCC8fn26NZy9AlLOXultSg",
-                    authDomain: "vidrio-71ef2.firebaseapp.com",
-                    projectId: "vidrio-71ef2",
-                    storageBucket: "vidrio-71ef2.firebasestorage.app",
-                    messagingSenderId: "739643613018",
-                    appId: "1:739643613018:web:0b60c554ded49f32f19d63",
-                    measurementId: "G-1TTH9EP5N8"
-                };
-                // migration flag: run migrateFromLocalStorage() automatically once on init
-                // you confirmed migration; leave as true for automatic execution (runs one-time, idempotent)
-                window.AUTO_RUN_MIGRATION = true;
-
-        try{
-            // compat init (legacy) - si sigue presente
-            try{ firebase.initializeApp(window.FIREBASE_CONFIG); }catch(e){ console.warn('compat firebase init failed', e); }
-        }catch(e){ console.warn('Firebase init warning', e); }
-
-        const auth = (firebase && firebase.auth) ? firebase.auth() : null;
-        const db = (firebase && firebase.firestore) ? firebase.firestore() : null;
-
-        // Sign in anonymously so Firestore rules that require auth work during testing
-            auth && auth.signInAnonymously && auth.signInAnonymously().catch(e=>{ console.warn('Firebase anonymous auth failed', e); });
-        
-        // close compat init IIFE
-        })();
-            </script>
+        window.testSaveHistorial = async function(){
+            try{
+                const now = Date.now();
+                const doc = await saveHistorial({ orden: 'TEST-' + now, linea: 'PKB1', fechaSolicitud: now - 5000, fechaEntrega: now, tiempo: 5, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                console.log('Historial guardado, id=', doc.id);
+            }catch(e){ console.error('testSaveHistorial failed', e); }
+        };
+    }catch(e){ console.warn('expose test helpers failed', e); }
+    </script>
 
             <!-- Modular SDK initialization: modules firebase.js + Historial.firebase.js -->
             <script type="module">
@@ -2309,7 +2353,7 @@
             <button id="btn-anular-solicitud" class="color-box red" type="button" aria-label="Anular solicitud" style="background:linear-gradient(90deg,#ff6b6b,#ff5252);color:white;">ANULAR<br>SOLICITUD</button>
             <button id="btn-solicitar" class="color-box orange" type="button" aria-label="Solicitar parciales">SOLICITAR<br>PARCIALES</button>
             <!-- top-info compacta: fecha y resumen de tiempos (una línea) -->
-            <div id="top-info" class="top-info top-info-compact" aria-live="polite">
+            <div id="top-info" class="top-info top-info-compact" aria-live="polite" style="display:none !important;visibility:hidden">
                 <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%">
                     <div style="display:flex;align-items:center;gap:8px">
                         <button id="top-info-handle" class="drag-handle" aria-label="Mover info" title="Mover" type="button">≡</button>
@@ -2326,10 +2370,9 @@
                     </div>
                 </div>
                 <div class="durations">
-                    <div style="font-size:11px;opacity:0.85;margin-top:2px">Gestion (S→S):</div>
-                    <ul id="empty-durations-list" style="margin:0;padding:0;list-style:none;display:flex;gap:8px;align-items:center;overflow:hidden;">
-                        <!-- items injected by JS -->
-                    </ul>
+                    <!-- Panel de tiempos oculto por solicitud del usuario -->
+                    <div style="display:none !important">Gestion (S→S):</div>
+                    <ul id="empty-durations-list" style="display:none !important"></ul>
                 </div>
             </div>
         </div>
@@ -2518,8 +2561,8 @@
         function adjustNavVisibility(){
             const items = Array.from(list.querySelectorAll('li'));
             if(!nav) return;
-            if(items.length <= 1){ nav.style.display = 'none'; }
-            else { nav.style.display = 'flex'; }
+            // Deshabilitado: navegación solo con mouse (scroll)
+            nav.style.display = 'none'; 
         }
 
         const obs = new MutationObserver(adjustNavVisibility);
@@ -2972,6 +3015,18 @@
 
         // initial
         render();
+    })();
+
+    // Ocultar completamente el elemento top-info
+    (function(){
+        const topInfo = document.getElementById('top-info');
+        if(topInfo) {
+            topInfo.style.display = 'none !important';
+            topInfo.style.visibility = 'hidden';
+            topInfo.style.position = 'absolute';
+            topInfo.style.left = '-9999px';
+            topInfo.style.top = '-9999px';
+        }
     })();
     </script>
 </body>
