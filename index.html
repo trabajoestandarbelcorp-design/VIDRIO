@@ -43,7 +43,7 @@
     /* stage */
     .container {
         display: flex;
-        gap: 4px; /* reducir gap entre columnas para ahorrar espacio */
+        gap: 12px; /* un poco más de separación entre columnas para claridad */
         border-radius: 12px;
         padding: 12px 8px; /* menos padding para reducir tamaño total */
         background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85));
@@ -59,7 +59,10 @@
         flex-direction: column;
         align-items: center;
         margin: 0 2px;
-        min-width: 72px; /* columnas más estrechas para mostrar más en pantalla */
+        /* Distribuir columnas usando todo el ancho disponible */
+        flex: 1 1 0;        /* columnas crecen y se comprimen para usar el ancho */
+        min-width: 140px;  /* evita columnas demasiado estrechas */
+        max-width: 360px;  /* limitar ancho para columnas grandes */
         background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.3));
         padding: 8px 6px 9px;
         border-radius: 8px;
@@ -103,16 +106,22 @@
         pointer-events: auto; /* keep pointer events for future features but prevent click-to-select behavior */
     }
     .block {
-        width: 60px;
-        height: 38px;
+        width: 86%; /* ocupar la mayor parte del ancho de la columna */
+        max-width: 240px; /* limitar ancho máximo para no crecer demasiado */
+        height: 64px; /* un poco más alto para mejor lectura */
+        display: flex; /* centrar contenido */
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px; /* espacio lateral para evitar overflow */
         background: linear-gradient(180deg,#fff85a,#fff069 60%);
         border-radius: 6px;
         border: 1px solid rgba(0,0,0,0.14);
-        margin: 6px 0;
+        margin: 8px 0;
         box-shadow: 0 6px 14px rgba(3,7,18,0.12), inset 0 -6px 18px rgba(255,255,255,0.35);
         transition: transform 180ms ease, opacity 160ms ease;
     }
-    .block .label{ display:block; font-size:10px; text-align:center; margin-top:4px; color:#0b1220; font-weight:700; pointer-events:none; }
+    .block .label{ display:block; font-size:18px; text-align:center; margin:0; color:#0b1220; font-weight:800; pointer-events:none; 
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
     /* selección de parcial (click) */
     .block.selected-parcial{
         outline: 3px solid rgba(59,130,246,0.95);
@@ -175,7 +184,7 @@
     /* fila superior: botones */
     .top-controls {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr; /* volver a 3 columnas para no cambiar ubicación de botones */
         grid-template-rows: auto auto;
         gap: 24px 300px; /* aumentado espacio horizontal entre botones */
         width: 100%;
@@ -232,6 +241,122 @@
         box-sizing: border-box; /* ensure padding included in width */
         overflow: hidden; /* keep children visually inside the panel */
     }
+
+    /* Ocultar el panel izquierdo para aprovechar todo el ancho disponible */
+    .controls{ display:none !important; width:0 !important; min-width:0 !important; padding:0 !important; margin:0 !important }
+        /* floating top-left actions (visual style) */
+        .floating-actions{ position: fixed; left: 18px; top: 18px; display:flex; flex-direction:column; gap:10px; z-index:120 }
+        /* Botones flotantes: más grandes y dispositivos amigables */
+        .floating-actions button{
+            min-width:160px;           /* anchura mínima mayor para que quepan 2 palabras */
+            width:auto;                /* dejar que el contenido y el container gestionen el tamaño */
+            height:56px;               /* alto aumentado para mejor legibilidad */
+            padding:10px 14px;         /* más padding para separar el texto del borde */
+            border-radius:12px;        /* borde un poco más redondeado */
+            border:none;
+            font-weight:700;
+            color:white;
+            background: linear-gradient(90deg,#3b82f6,#2563eb);
+            box-shadow: 0 12px 30px rgba(37,99,235,0.14);
+            cursor:pointer;
+            transition: transform 120ms ease, box-shadow 120ms ease;
+            display:flex;              /* permitir centrar multilinea */
+            align-items:center;
+            justify-content:center;
+            text-align:center;
+            white-space:normal;       /* permitir salto de línea natural */
+            line-height:1.05;         /* compactar ligeramente la altura de línea */
+            font-size:15px;           /* tamaño de texto aumentado */
+        }
+        .floating-actions button:hover{ transform: translateY(-3px); box-shadow: 0 16px 36px rgba(37,99,235,0.16); }
+        /* make export button same color / look as manage button */
+        .floating-actions .export-btn{ background: linear-gradient(90deg,#3b82f6,#2563eb); }
+        @media (max-width:900px){
+            .floating-actions{ position: static; margin-bottom:12px; display:flex; flex-direction:row; gap:8px }
+            .floating-actions button{ width:auto; min-width:110px; height:48px; font-size:13px }
+        }
+
+        /* responsive for top-controls: keep compact info usable on small screens */
+        @media (max-width:900px){
+            .top-controls{ grid-template-columns: repeat(2,1fr); gap:12px 12px }
+            /* en móvil colocamos la info compacta de forma estática debajo de los botones */
+            .top-controls .top-info-compact{ position:static; top:auto; right:auto; grid-column: 1 / -1; justify-self:center; width:100%; max-width:100%; padding:8px }
+        }
+
+        /* floating history card (moved más a la derecha para separar de los botones) */
+          /* hacer el panel un poco más pequeño y desplazado ligeramente hacia la derecha
+              para que no se superponga con el botón "ABASTECER KAMBAN" */
+        /* con el panel lateral eliminado, acercamos el histórico al borde izquierdo */
+        .floating-history{ position: fixed; left: 18px; top: 18px; width: 300px; z-index:115; }
+        .floating-history .history-controls{ display:flex; gap:6px; align-items:center; justify-content:space-between; margin-bottom:6px }
+        .floating-history .drag-handle{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:grab; display:inline-flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); }
+        .floating-history .drag-handle:active{ cursor:grabbing }
+        .floating-history .history-reset{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.04); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px }
+        .floating-history.dragging { opacity:0.96; transform: none; transition: none }
+        .floating-history .history-card{ padding:12px; border-radius:12px; box-shadow: 0 18px 48px rgba(2,6,23,0.08); border:1px solid rgba(0,0,0,0.04); background:linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,250,250,0.96)); }
+        .floating-history .search-row{ display:flex; gap:8px; align-items:center; }
+        .floating-history .search-input{ width:100%; }
+        .floating-history .search-clear{ padding:6px;border-radius:8px }
+        /* mostrar exactamente 1 tarjeta del historial (ni más ni menos) */
+        /* Elegimos una altura fija de tarjeta que contiene: título, línea, solicitud, entrega y tiempo */
+        #recent-history-list{
+            list-style:none;
+            padding:0;           /* quitar padding para que la tarjeta encaje exactamente */
+            margin:0;
+            height:150px;       /* reducir un poco la altura para evitar solapamiento con el botón */
+            overflow-y:auto;    /* permitir desplazamiento con botones o rueda */
+            scroll-snap-type: y mandatory; /* snap por tarjeta */
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            position:relative;
+        }
+        /* ocultar scrollbar visual (mantener funcionalidad) */
+        #recent-history-list::-webkit-scrollbar{ width:8px; height:8px }
+        #recent-history-list::-webkit-scrollbar-thumb{ background: rgba(0,0,0,0.12); border-radius:8px }
+        #recent-history-list::-webkit-scrollbar-track{ background:transparent }
+        /* centrar verticalmente los botones de navegación respecto a la tarjeta visible */
+        #recent-history .recent-nav{ position:absolute; right:8px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:6px; z-index:130 }
+        #recent-history .recent-nav button{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); }
+        #recent-history .recent-nav button:hover{ background: rgba(11,18,32,0.10); transform: translateY(-2px); }
+        @media (max-width:900px){ .floating-history{ position: static; margin: 8px 0 12px 0; width: auto; left: auto } }
+
+        /* estilo por defecto para los items de historial: tarjeta con altura fija que encaja exactamente en el contenedor */
+        #recent-history-list li{
+            background: linear-gradient(180deg,#ffffff,#fbfdff);
+            border-radius:10px;
+            padding:12px 14px;
+            margin:0; /* sin margen para que cada li ocupe exactamente la altura del contenedor */
+            box-shadow: 0 8px 22px rgba(2,6,23,0.06);
+            border-left: 4px solid rgba(59,130,246,0.06);
+            box-sizing: border-box;
+            height: 150px;      /* cada li tendrá EXACTAMENTE la misma altura que el contenedor */
+            overflow: hidden;   /* ocultar cualquier overflow dentro de la tarjeta */
+            scroll-snap-align: start; /* asegurar snap por tarjeta */
+        }
+        #recent-history-list li .order-title{ font-weight:800; color:#0b2a55; margin-bottom:6px }
+        #recent-history-list li .item-row{ display:flex; gap:8px; align-items:center; font-size:13px; color: #334155 }
+
+        /* responsive: en pantallas pequeñas hacemos la tarjeta ligeramente más corta para que encaje mejor */
+        @media (max-width:900px){
+            #recent-history-list{ height:140px }
+            #recent-history-list li{ height:124px }
+            #recent-history .recent-nav button{ width:30px; height:30px }
+            .floating-history{ left: calc(18px + 140px); width: 260px }
+        }
+
+        /* Responsiveness for columns and blocks */
+        @media (max-width:1400px){
+            .column{ min-width:120px; max-width:300px }
+            .block{ height:58px }
+        }
+        @media (max-width:1100px){
+            .column{ min-width:110px; max-width:240px }
+            .block{ height:52px }
+        }
+        @media (max-width:700px){
+            .column{ min-width:92px; max-width:160px }
+            .block{ height:50px; width:90% }
+        }
     /* panel derecho: contenedor de líneas */
     .right-panel {
         flex: 1;
@@ -358,6 +483,9 @@
     }
     /* drag ghost used during touch/pointer drag */
     .drag-ghost{ position:fixed; pointer-events:none; transform:translate(-50%,-50%); z-index:9999; opacity:0.95; border-radius:6px; box-shadow:0 12px 30px rgba(0,0,0,0.18); }
+    /* global drag handle style (used by floating-history and top-info) */
+    .drag-handle{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:grab; display:inline-flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); touch-action:none; }
+    .drag-handle:active{ cursor:grabbing }
     /* visual highlight for drop target */
     .btn-drop-target{ box-shadow: 0 0 0 6px rgba(59,130,246,0.12) !important; transform: translateY(-2px) scale(1.02) !important; }
     /* barcode modal */
@@ -461,9 +589,9 @@
     }
     /* toggle switch para activar/desactivar línea */
     .toggle-switch{
-        position: absolute; top: -16px; left: 8px;
-        width: 48px; height: 24px;
-        background: #e5e7eb; border: none; border-radius: 12px;
+        position: absolute; top: -14px; left: 8px;
+        width: 36px; height: 18px;
+        background: #e5e7eb; border: none; border-radius: 9px;
         cursor: pointer; transition: all 220ms ease;
         display: flex; align-items: center; padding: 0 2px;
         box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
@@ -471,14 +599,15 @@
     .toggle-switch.active{ background: #10b981; }
     .toggle-switch::after{
         content: '';
-        width: 20px;
-        height: 20px;
+        width: 14px;
+        height: 14px;
         background: white;
         border-radius: 50%;
         transition: transform 220ms ease;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-    .toggle-switch.active::after{ transform: translateX(24px); }
+    /* move the knob to the right based on the smaller width (36 - 14 - padding*2 = 20) */
+    .toggle-switch.active::after{ transform: translateX(20px); }
     .toggle-switch:hover{ transform: scale(1.05); }
     /* título con efecto glassmorphism */
     .title {
@@ -562,6 +691,50 @@
     .top-info .durations li.current span.time{ color:#b91c1c; }
     .top-info .durations li.stopped span.name{ color:#6b7280; font-weight:700; }
     .top-info .durations li.stopped span.time{ color:#6b7280; opacity:0.92; font-weight:700; }
+
+    /* versiones compactas del top-info cuando se inserta dentro del panel flotante */
+    .floating-history .floating-top-info{
+        background: rgba(255,255,255,0.96);
+        padding:8px 10px;
+        border-radius:10px;
+        box-shadow: 0 8px 18px rgba(2,6,23,0.04);
+        border:1px solid rgba(0,0,0,0.04);
+        width:100%;
+        box-sizing:border-box;
+    }
+
+    /* Top-info compact dentro de la fila superior de controles */
+    /* mover la info compacta a un lugar fijo en la esquina superior derecha
+       para que NO cambie la ubicación original de los botones */
+    .top-controls .top-info-compact{
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        z-index: 130;
+        background: rgba(255,255,255,0.98);
+        padding:8px 10px;
+        border-radius: 10px;
+        border:1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 8px 18px rgba(2,6,23,0.06);
+        min-width: 170px;
+        max-width: 260px;
+        box-sizing: border-box;
+        text-align: left;
+        font-size: 12px;
+        color: var(--glass-text);
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        align-items:flex-start;
+        /* User requested this panel to be hidden — override here */
+        display: none !important;
+    }
+    .top-controls .top-info-compact .now{ font-weight:700; font-size:13px; margin-bottom:4px }
+    .top-controls .top-info-compact .durations{ display:flex; gap:8px; align-items:center; justify-content:space-between }
+    .top-controls .top-info-compact .durations ul{ margin:0; padding:0; list-style:none; display:flex; gap:8px; align-items:center; }
+    .top-controls .top-info-compact .durations li{ font-weight:700; color:#b91c1c; font-size:13px }
+    .floating-history .floating-top-info .now{ font-size:13px; font-weight:700 }
+    .floating-history .floating-top-info .durations ul{ max-height:76px; overflow:auto; padding:0; margin:6px 0 0 0 }
     .manage-panel h2{ margin-top:0 }
     .manage-row{ display:flex; gap:8px; margin-bottom:10px }
     .manage-row input[type=text]{ flex:1; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08) }
@@ -573,6 +746,39 @@
 </style>
 </head>
 <body>
+    <!-- floating action buttons in top-left (visual placement only) -->
+    <div id="floating-actions" class="floating-actions" aria-hidden="false">
+        <button id="manage-lines-btn" class="manage-btn" type="button">Gestionar líneas</button>
+        <button id="export-history-csv" class="export-btn" type="button">Exportar Excel</button>
+    </div>
+    <!-- floating history card to the right of actions (keeps same IDs so JS still works) -->
+    <div id="floating-history" class="floating-history" aria-live="polite">
+        <div class="history-controls" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;gap:8px;align-items:center">
+                <button class="drag-handle" aria-label="Mover historial" title="Mover" type="button">≡</button>
+                <div style="font-weight:700; font-size:13px">Historial</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <button id="floating-history-reset" class="history-reset" title="Resetear posición" aria-label="Resetear posición">⤾</button>
+                <button id="btn-test-history" class="btn" title="Probar historial" style="padding:6px 8px;font-size:12px;margin-left:6px">Probar historial</button>
+            </div>
+        </div>
+        <div class="search-row" style="margin-bottom:8px">
+            <input id="order-search" class="search-input" type="search" placeholder="Buscar en historial (ej. 12721111)" aria-label="Buscar en historial" />
+            <button id="order-search-clear" class="search-clear" title="Limpiar búsqueda">✕</button>
+        </div>
+        <div id="recent-history" class="history-card small-box" aria-live="polite">
+            <div style="font-weight:700;margin-bottom:6px">Últimos 5 parciales abastecidos</div>
+            <!-- top-info previously here — moved to top-controls as compact version -->
+            <div class="recent-list-wrap" style="position:relative">
+                <ul id="recent-history-list"></ul>
+                <div class="recent-nav" aria-hidden="false">
+                    <button id="recent-prev" aria-label="Ver anterior">▲</button>
+                    <button id="recent-next" aria-label="Ver siguiente">▼</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- (alert banner removed — using red report panel below) -->
     <!-- panel de reporte de líneas vacías (se ubicará junto al panel de controles) -->
     <!-- el elemento se inserta junto a .controls más abajo -->
@@ -594,6 +800,50 @@
     <h1 class="title">Estado y solicitud de parciales,kamban descartonado de vidrio</h1>
     <!-- (removed stray closing tag that broke DOM structure) -->
     <script>
+    // wire the visible "Probar historial" button (creates a test entry and updates the UI)
+    (function(){
+        function showStatus(msg, timeout=3000){
+            try{
+                // Useful diagnostic: dynamic imports will fail if the page is opened via file://
+                if(location.protocol === 'file:'){
+                    const msg = 'No se puede importar módulos dinámicos cuando el archivo está abierto con file://. Usa un servidor local (python -m http.server o npx http-server) y abre http://localhost:PORT.';
+                    console.error(msg);
+                    showStatus(msg);
+                    throw new Error(msg);
+                }
+                let el = document.getElementById('hist-test-status');
+                if(!el){
+                    // find the correct container: the element with id recent-history
+                    const wrap = document.querySelector('#recent-history');
+                    if(!wrap) {
+                        console.warn('showStatus: recent-history container not found');
+                    } else {
+                        el = document.createElement('div');
+                        el.id = 'hist-test-status';
+                        el.style.fontSize = '12px';
+                        el.style.color = '#0b1220';
+                        el.style.opacity = 0.85;
+                        el.style.marginTop = '6px';
+                        wrap.appendChild(el);
+                    }
+                }
+                el.textContent = msg;
+                if(timeout>0) setTimeout(()=>{ try{ el.textContent = ''; }catch(e){} }, timeout);
+            }catch(e){ console.warn('showStatus failed', e); }
+        }
+
+        const btn = document.getElementById('btn-test-history');
+        if(btn){
+            btn.addEventListener('click', async ()=>{
+                try{
+                    if(!window.testAddHistory) { showStatus('Helper no disponible (usa consola)'); return; }
+                    showStatus('Creando entrada de prueba...', 60000);
+                    await window.testAddHistory();
+                    showStatus('Entrada de prueba solicitada. Revisa el historial (o consola).', 4000);
+                }catch(e){ console.error('test history failed', e); showStatus('Error creando entrada, revisa la consola'); }
+            });
+        }
+    })();
     document.addEventListener('DOMContentLoaded', function(){
         const input = document.getElementById('line-name');
         const btnAdd = document.getElementById('btn-entrada');
@@ -969,7 +1219,7 @@
             _dragState = null;
         }
 
-        function addPartial(name){
+        async function addPartial(name){
             // backward-compatible signature: addPartial(lineName, blockLabel)
             const lineName = name;
             const blockLabel = arguments.length > 1 ? arguments[1] : undefined;
@@ -982,6 +1232,15 @@
                 status.textContent = `Línea "${name}" está inactiva. No se pueden añadir parciales.`;
                 return;
             }
+            // Prefer Firestore path when available: use columns module to add block remotely and rely on listeners
+            try{
+                if(window.columnsFB && window._colsByName && window._colsByName[lineName]){
+                    await window.columnsFB.addBlock(window._colsByName[lineName], { name: blockLabel });
+                    status.textContent = `Agregado parcial a ${name} (sincr.)`;
+                    return;
+                }
+            }catch(e){ console.warn('addPartial: firestore add failed', e); }
+
             const block = document.createElement('div');
             block.className = 'block appear';
             // set data attributes so persistence works
@@ -1030,7 +1289,7 @@
             try{ applyRequestedToDOM(); }catch(e){}
         }
 
-        function removePartial(name){
+        async function removePartial(name){
             const col = findColumn(name);
             if(!col){
                 status.textContent = `Línea "${name}" no encontrada.`;
@@ -1062,7 +1321,7 @@
             openBarcodeModal(input.value);
         });
 
-        btnRemove.addEventListener('click', ()=>{
+        btnRemove.addEventListener('click', async ()=>{
             try{
                 const lineName = (input.value||'').trim();
                 if(lineName){
@@ -1091,8 +1350,20 @@
                             try{ addHistoryEntries([{ name: lastInfo.name || (lastInfo.line + '#' + lastInfo.index), line: lastInfo.line, index: lastInfo.index, requestedAt: prevSolic || now, suppliedAt: now, duration }]); }catch(e){}
                     }
 
-                    // actually remove the partial (keeps same behavior with animation)
-                    removePartial(lineName);
+                    // Prefer Firestore delete if available
+                    try{
+                        if(window.columnsFB && window._colsByName && window._colsByName[lineName]){
+                            const removed = await window.columnsFB.removeLastBlock(window._colsByName[lineName]);
+                            // add to history from the removed document info
+                            if(removed){ try{ if(window.historialFirebase && window.historialFirebase.addEntry) window.historialFirebase.addEntry({ name: removed.name || (lineName + '#' + removed.index), line: lineName, index: removed.index, suppliedAt: Date.now() }); }catch(e){} }
+                            // re-render will be handled by listener; show success
+                            status.textContent = '✅ Parcial abastecido correctamente (sincr.)';
+                            setTimeout(()=>{ status.textContent=''; status.style.display='none'; }, 2000);
+                        }else{
+                            // fallback: actually remove the partial locally (keeps same behavior with animation)
+                            removePartial(lineName);
+                        }
+                    }catch(e){ console.warn('removePartial firestore failed', e); removePartial(lineName); }
 
                     // Mostrar notificación de éxito DESPUÉS de la animación de removePartial (260ms)
                     setTimeout(()=>{
@@ -1137,19 +1408,24 @@
                 if(line.active !== false) toggle.classList.add('active');
                 toggle.type = 'button';
                 toggle.title = line.active !== false ? 'Clic para desactivar' : 'Clic para activar';
-                toggle.addEventListener('click', (e)=>{
+                toggle.addEventListener('click', async (e)=>{
                     e.stopPropagation();
                     // toggle active status in storage
                     try{
-                        const raw = localStorage.getItem('pk_lines') || '[]';
-                        const stored = JSON.parse(raw);
-                        const idx = stored.findIndex(l => l.name === line.name);
-                        if(idx >= 0){
-                            stored[idx].active = !(stored[idx].active !== false);
-                            localStorage.setItem('pk_lines', JSON.stringify(stored));
-                            // apply immediately
-                            try{ if(window.applyLinesToDOM) window.applyLinesToDOM(stored); }catch(e){}
-                            window.dispatchEvent(new StorageEvent('storage', {key:'pk_lines'}));
+                        // If Firestore modules are available use them
+                        if(window.columnsFB && window._colsByName && window._colsByName[line.name]){
+                            try{ await window.columnsFB.toggleColumnActive(window._colsByName[line.name], !line.active); }catch(e){ console.warn('toggleColumnActive failed', e); }
+                        }else{
+                            const raw = localStorage.getItem('pk_lines') || '[]';
+                            const stored = JSON.parse(raw);
+                            const idx = stored.findIndex(l => l.name === line.name);
+                            if(idx >= 0){
+                                stored[idx].active = !(stored[idx].active !== false);
+                                localStorage.setItem('pk_lines', JSON.stringify(stored));
+                                // apply immediately
+                                try{ if(window.applyLinesToDOM) window.applyLinesToDOM(stored); }catch(e){}
+                                window.dispatchEvent(new StorageEvent('storage', {key:'pk_lines'}));
+                            }
                         }
                     }catch(e){ console.error('toggle failed', e); }
                 });
@@ -1503,7 +1779,9 @@
     <script>
     (function(){
         // Config proporcionada por el usuario (desde la consola Firebase)
-        const firebaseConfig = {
+        // exponemos la config en window para que los módulos (./firebase.js y ./Historial.firebase.js)
+        // puedan consumirla desde un <script type="module"> más abajo.
+        window.FIREBASE_CONFIG = {
           apiKey: "AIzaSyDhSuWPakadOZcsTiSwy_JMfTyZ-ML4eI4",
           authDomain: "indexvidrio.firebaseapp.com",
           projectId: "indexvidrio",
@@ -1513,16 +1791,148 @@
           measurementId: "G-R0R2V42V1R"
         };
 
+                // Config provista por el usuario — Firebase web app (pegar cadena exactamente como en consola)
+                window.FIREBASE_CONFIG = {
+                    apiKey: "AIzaSyAvvv7A9y91tyCC8fn26NZy9AlLOXultSg",
+                    authDomain: "vidrio-71ef2.firebaseapp.com",
+                    projectId: "vidrio-71ef2",
+                    storageBucket: "vidrio-71ef2.firebasestorage.app",
+                    messagingSenderId: "739643613018",
+                    appId: "1:739643613018:web:0b60c554ded49f32f19d63",
+                    measurementId: "G-1TTH9EP5N8"
+                };
+                // migration flag: run migrateFromLocalStorage() automatically once on init
+                // you confirmed migration; leave as true for automatic execution (runs one-time, idempotent)
+                window.AUTO_RUN_MIGRATION = true;
+
         try{
-            firebase.initializeApp(firebaseConfig);
+            // compat init (legacy) - si sigue presente
+            try{ firebase.initializeApp(window.FIREBASE_CONFIG); }catch(e){ console.warn('compat firebase init failed', e); }
         }catch(e){ console.warn('Firebase init warning', e); }
 
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const auth = (firebase && firebase.auth) ? firebase.auth() : null;
+        const db = (firebase && firebase.firestore) ? firebase.firestore() : null;
 
         // Sign in anonymously so Firestore rules that require auth work during testing
-        auth.signInAnonymously().catch(e=>{ console.warn('Firebase anonymous auth failed', e); });
+            auth && auth.signInAnonymously && auth.signInAnonymously().catch(e=>{ console.warn('Firebase anonymous auth failed', e); });
+        
+        // close compat init IIFE
+        })();
+            </script>
 
+            <!-- Modular SDK initialization: modules firebase.js + Historial.firebase.js -->
+            <script type="module">
+                import { init, getAuth } from './firebase.js';
+                import * as historialFB from './Historial.firebase.js';
+                import * as columnsFB from './columns.firebase.js';
+
+                (async ()=>{
+                    try{
+                        const cfg = window.FIREBASE_CONFIG;
+                        if(!cfg){ console.warn('window.FIREBASE_CONFIG not found — skipping modular Firebase init'); return; }
+
+                        await init(cfg);
+                        // try anonymous sign-in using modular auth if available
+                                                try{ 
+                                                        const auth = getAuth(); 
+                                                        try{ const { signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js');
+                                                                                // fallback anonymous signin to ensure rules view during tests
+                                                                                signInAnonymously(auth).catch(()=>{});
+                                                                                onAuthStateChanged(auth, user=>{ window.currentUser = user; updateAuthUI(user); });
+
+                                                                                // expose sign-in helpers for UI
+                                                                                window.signInWithGoogle = async function(){
+                                                                                    try{ const provider = new GoogleAuthProvider(); await signInWithPopup(auth, provider); }catch(e){ console.warn('Google sign-in failed', e); }
+                                                                                };
+                                                                                window.signOutFirebase = async function(){ try{ await signOut(auth); }catch(e){ console.warn('Signout failed', e); } };
+                                                                                // attach UI buttons (in case DOM already loaded)
+                                                                                try{
+                                                                                    const signinBtn = document.getElementById('btn-signin-google');
+                                                                                    const signoutBtn = document.getElementById('btn-signout');
+                                                                                    if(signinBtn) signinBtn.addEventListener('click', ()=>window.signInWithGoogle());
+                                                                                    if(signoutBtn) signoutBtn.addEventListener('click', ()=>window.signOutFirebase());
+                                                                                }catch(e){ }
+                                                        }catch(e){ console.warn('modular auth helpers import failed', e); }
+                                                        // UI update helper (local): tries to update the auth UI controls
+                                                        function updateAuthUI(user){
+                                                            try{
+                                                                const userInfo = document.getElementById('user-info');
+                                                                const signinBtn = document.getElementById('btn-signin-google');
+                                                                const signoutBtn = document.getElementById('btn-signout');
+                                                                if(!userInfo) return;
+                                                                if(user){
+                                                                    userInfo.textContent = user.email ? (user.email + ' — ' + user.uid.substring(0,6)) : ('uid:'+ user.uid);
+                                                                    if(signinBtn) signinBtn.style.display = 'none';
+                                                                    if(signoutBtn) signoutBtn.style.display = 'inline-block';
+                                                                } else {
+                                                                    userInfo.textContent = '';
+                                                                    if(signinBtn) signinBtn.style.display = 'inline-block';
+                                                                    if(signoutBtn) signoutBtn.style.display = 'none';
+                                                                }
+                                                            }catch(e){ }
+                                                        window.updateAuthUI = updateAuthUI;
+                                                        }
+                        }catch(e){}
+
+                        // expose helpers to global scope for legacy code (optional)
+                        window.historialFirebase = historialFB;
+
+                        // start a background listener and feed existing UI if present
+                        try{
+                            historialFB.listenRecent(items => {
+                                try{ console.debug('historial listener: items count', Array.isArray(items) ? items.length : typeof items); }catch(e){}
+                                if(window.renderRecentHistory) try{ window.renderRecentHistory(items); }catch(e){}
+                                if(window.historialModule && typeof window.historialModule.renderizar === 'function'){
+                                    try{ window.historialModule.setRemoteData && window.historialModule.setRemoteData(items); }catch(e){}
+                                }
+                            }, { limit: 50 });
+                        }catch(e){ console.warn('historial listener failed', e); }
+
+                        // listen to columns collection and mirror to UI
+                        try{
+                            // expose columns helpers globally for legacy code and map name -> docId
+                            window.columnsFB = columnsFB;
+                            // convenience helper to migrate localStorage data into Firestore (run from console once)
+                            window.runMigrateFromLocalStorage = async function(){ try{ await columnsFB.migrateFromLocalStorage(); alert('Migración completada (revisa Firestore)'); }catch(e){ console.error('migrate failed', e); alert('Migración fallida, revisa consola'); } };
+                            window._colsByName = {};
+                            columnsFB.listenColumns(async (cols) => {
+                                try{
+                                    // normalize to shape expected by renderColumns: {name, count, active}
+                                    const normalized = cols.map(c => ({ name: c.name, count: c.count || 0, active: c.active }));
+                                    // keep name->id map updated
+                                    window._colsByName = {};
+                                    cols.forEach(c => { if(c && c.name) window._colsByName[c.name] = c.id; });
+                                    // render
+                                    try{ window.renderColumns && window.renderColumns(normalized); }catch(e){}
+                                }catch(e){ console.warn('columns listener callback failed', e); }
+                            });
+
+                            // when blocks change, fetch fresh columns snapshot and re-render so counts stay consistent
+                            window.addEventListener('columns.blocks.update', async ()=>{
+                                try{ const cols = await columnsFB.getColumnsSnapshot(); const normalized = cols.map(c=>({ name: c.name, count: c.count || 0, active: c.active })); window.renderColumns && window.renderColumns(normalized); }catch(e){ console.warn('on blocks.update render failed', e); }
+                            });
+                        }catch(e){ console.warn('columns listener failed', e); }
+
+                        // Auto-migrate localStorage -> Firestore (one-time) if the developer confirmed.
+                        // WARNING: this writes to your Firestore DB; run only once. User confirmed migration.
+                        try{
+                            if(window.AUTO_RUN_MIGRATION === true){
+                                console.info('AUTO_RUN_MIGRATION is true — running migrateFromLocalStorage() (one-time)');
+                                try{ const res = await columnsFB.migrateFromLocalStorage(); console.info('migrateFromLocalStorage result', res); try{ if(res && res.alreadyMigrated) alert('La migración ya se había aplicado previamente — no se realizaron cambios.'); else if(res && res.migrated) alert('Migración completa: datos locales movidos a Firestore. Revisa Firebase Console.'); }catch(e){}
+                                    // disable automatic migration after first run to avoid attempts from other machines
+                                    try{ window.AUTO_RUN_MIGRATION = false; localStorage.setItem('pk_migrated_to_firestore_v1', '1'); }catch(_){ }
+                                }catch(e){ console.warn('auto migration failed', e); alert('La migración automática falló — revisa consola.'); }
+                            }
+                        }catch(e){ console.warn('auto migration launcher failed', e); }
+
+                    }catch(e){
+                        console.warn('modular firebase init failed', e);
+                    }
+                })();
+            </script>
+
+            <script>
+            (function(){
         const stateDoc = db.collection('ui').doc('pk_state');
 
         // Listener en tiempo real: cuando cambie el documento remoto, aplicamos cambios al DOM
@@ -1587,6 +1997,111 @@
         }catch(e){ console.warn('hook saveRequestedMap failed', e); }
 
         console.log('Firebase realtime sync initialized (Firestore).');
+    })();
+    </script>
+
+    <script>
+    // Renderizador de historial: consume objetos devueltos por Firestore
+    (function(){
+        function safeTxt(s){ return String(s||''); }
+        function formatTs(ts){
+            if(!ts) return '';
+            try{
+                if(typeof ts.toDate === 'function') ts = ts.toDate();
+                else if(ts && ts.seconds) ts = new Date(ts.seconds * 1000);
+                else if(typeof ts === 'number') ts = new Date(ts);
+                if(ts instanceof Date) return ts.toLocaleString();
+            }catch(e){}
+            return String(ts||'');
+        }
+
+        function renderRecentHistory(items){
+            try{
+                const list = document.getElementById('recent-history-list');
+                if(!list) return;
+                list.innerHTML = '';
+                if(!Array.isArray(items) || items.length === 0){
+                    // show placeholder when no history entries exist
+                    const p = document.createElement('li');
+                    p.className = 'empty-history';
+                    p.style.opacity = '0.5';
+                    p.style.padding = '18px';
+                    p.textContent = 'No hay entradas recientes en el historial.';
+                    list.appendChild(p);
+                    return;
+                }
+                // take up to 5 most recent
+                const arr = items.slice(0,5);
+                arr.forEach(it => {
+                    const id = it.id || '';
+                    const title = it.orderId || it.name || ('#' + (it.index!=null?it.index:''));
+                    const action = it.action || (it.suppliedAt || it.suppliedAt===0 ? 'abastecido' : (it.requestedAt ? 'solicitado' : 'registro'));
+                    const line = it.line || it.columnId || '';
+                    const time = formatTs(it.ts || it.suppliedAt || it.requestedAt || it.createdAt);
+
+                    const li = document.createElement('li');
+                    li.dataset.id = id;
+                    li.innerHTML = `
+                        <div class="order-title">${escapeHtml(title)}</div>
+                        <div class="item-row">
+                            <div style="flex:1">${escapeHtml(action || '')}${line ? (' — ' + escapeHtml(line)) : ''}</div>
+                            <div style="font-size:12px;color:#6b7280">${escapeHtml(time)}</div>
+                        </div>`;
+                    list.appendChild(li);
+                });
+            }catch(e){ console.error('renderRecentHistory failed', e); }
+        }
+
+        // small helper to escape HTML in strings
+        function escapeHtml(str){
+            return String(str||'').replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]; });
+        }
+
+        // expose globally for listeners
+        window.renderRecentHistory = renderRecentHistory;
+
+        // test helper so you can add a quick history entry from console
+        window.testAddHistory = async function(){
+            try{
+                // ensure module is available; try dynamic import as fallback
+                if(!window.historialFirebase){
+                    try{
+                        const mod = await import('./Historial.firebase.js');
+                        window.historialFirebase = mod;
+                    }catch(e){
+                        console.warn('dynamic import Historial.firebase.js failed', e);
+                        // attempt lowercase name fallback
+                        try{ const mod2 = await import('./historial.firebase.js'); window.historialFirebase = mod2; }catch(err){ console.warn('dynamic import historial.firebase.js failed', err); }
+                    }
+                }
+
+                if(window.historialFirebase && window.historialFirebase.addEntry){
+                    const id = await window.historialFirebase.addEntry({ orderId: 'TEST-' + Date.now(), action:'test', line: 'MANUAL' });
+                    console.info('test history created (module)', id);
+                    return id;
+                }
+
+                // Fallback: use compat SDK global 'db' if available (compat script loaded earlier)
+                if(typeof db !== 'undefined' && db && db.collection){
+                    try{
+                        const payload = { orderId: 'TEST-' + Date.now(), action:'test', line: 'MANUAL', ts: new Date() };
+                        const docRef = await db.collection('historial').add(payload);
+                        console.info('test history created (compat db) id=', docRef.id);
+                        return docRef.id;
+                    }catch(e){ console.warn('compat db write failed', e); throw e; }
+                }
+
+                throw new Error('historial module not available after dynamic import and no compat db fallback');
+            }catch(e){ console.warn('testAddHistory failed', e); throw e; }
+        };
+
+        // if page doesn't include a full historialModule, provide a small fallback implementation
+        if(!window.historialModule){
+            window.historialModule = {
+                setRemoteData(items){ try{ renderRecentHistory(items); }catch(e){ console.warn(e); } },
+                renderizar(){ try{ /* nothing — remote data will trigger setRemoteData */ }catch(e){} }
+            };
+        }
     })();
     </script>
     <!-- Barcode / naming modal -->
@@ -1693,6 +2208,85 @@
         // nota: renderRecentHistory ahora es manejado por historial.js
         setInterval(()=>{ updateDateTime(); updateSolicitudDurationsDisplay(); }, 1000);
 
+        // make top-info draggable & persistent (same UX as floating-history)
+        (function(){
+            const el = document.getElementById('top-info');
+            if(!el) return;
+            const key = 'pk_top_info_pos';
+            function apply(){
+                try{
+                    if(window.matchMedia && window.matchMedia('(max-width:900px)').matches) return;
+                    const raw = localStorage.getItem(key);
+                    if(!raw) return;
+                    const pos = JSON.parse(raw);
+                    if(pos && typeof pos.left === 'number' && typeof pos.top === 'number'){
+                        el.style.position = 'fixed';
+                        el.style.left = Math.max(6, Math.min(window.innerWidth - (el.offsetWidth||170) - 6, pos.left)) + 'px';
+                        el.style.top = Math.max(6, Math.min(window.innerHeight - (el.offsetHeight||48) - 6, pos.top)) + 'px';
+                        el.style.right = 'auto';
+                    }
+                }catch(e){ console.warn('apply top-info', e); }
+            }
+            apply();
+
+            let dragging=false, sx=0, sy=0, sl=0, st=0, pid=null;
+            const handle = document.getElementById('top-info-handle');
+            const resetBtn = document.getElementById('top-info-reset');
+            function within(){ return !(window.matchMedia && window.matchMedia('(max-width:900px)').matches); }
+            function onMove(e){ if(!dragging) return; const cx = e.clientX!==undefined?e.clientX:(e.touches&&e.touches[0]&&e.touches[0].clientX); const cy = e.clientY!==undefined?e.clientY:(e.touches&&e.touches[0]&&e.touches[0].clientY); if(cx==null||cy==null) return; let nx = Math.round(sl + (cx - sx)); let ny = Math.round(st + (cy - sy)); const pad=6; const w=el.offsetWidth||170; const h=el.offsetHeight||48; nx=Math.max(pad,Math.min(window.innerWidth-w-pad,nx)); ny=Math.max(pad,Math.min(window.innerHeight-h-pad,ny)); el.style.left = nx+'px'; el.style.top = ny+'px'; }
+            function endDrag(e){ if(!dragging) return; dragging=false; el.classList.remove('dragging'); try{ localStorage.setItem(key, JSON.stringify({left: parseInt(el.style.left||0,10), top: parseInt(el.style.top||0,10)})); }catch(err){} document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', endDrag); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', endDrag); try{ if(pid && e.target && e.target.releasePointerCapture) e.target.releasePointerCapture(pid); }catch(e){} pid=null; }
+            function startDrag(e){
+                if(!within()) return;
+                try{
+                    const t = e.target || (e.touches && e.touches[0]);
+                    const node = t && (t.nodeType ? t : t.target) || e.target;
+                    if(node && node.closest){
+                        // allow drag if the interaction originates from the drag-handle itself
+                        const isHandle = !!node.closest('.drag-handle');
+                        const isInteractive = !!node.closest('button, a, input, textarea, select, [role="button"]');
+                        if(isInteractive && !isHandle) return; // if it's an interactive element but not the handle, ignore
+                    }
+                }catch(_){ }
+
+                try{ el.style.zIndex = 9999; }catch(e){}
+
+                e.preventDefault && e.preventDefault();
+                dragging = true; el.classList.add('dragging');
+
+                try{
+                    // if element wasn't fixed before, convert its current position into fixed coords
+                    if(getComputedStyle(el).position !== 'fixed'){
+                        const r = el.getBoundingClientRect();
+                        el.style.position = 'fixed';
+                        el.style.left = (r.left + window.scrollX) + 'px';
+                        el.style.top = (r.top + window.scrollY) + 'px';
+                        el.style.right = 'auto';
+                    }
+                }catch(_){ }
+
+                sx = e.clientX!==undefined?e.clientX:(e.touches&&e.touches[0]&&e.touches[0].clientX);
+                sy = e.clientY!==undefined?e.clientY:(e.touches&&e.touches[0]&&e.touches[0].clientY);
+                sl = parseInt(el.style.left||el.getBoundingClientRect().left||0,10);
+                st = parseInt(el.style.top||el.getBoundingClientRect().top||0,10);
+                pid = e.pointerId||null;
+                try{ if(pid && e.target && e.target.setPointerCapture) e.target.setPointerCapture(pid); }catch(e){}
+                document.addEventListener('pointermove', onMove);
+                document.addEventListener('pointerup', endDrag);
+                document.addEventListener('touchmove', onMove, { passive:false });
+                document.addEventListener('touchend', endDrag);
+            }
+            if(handle){
+                // prefer Pointer Events, fall back to mouse/touch
+                handle.addEventListener('pointerdown', startDrag, { passive: false });
+                handle.addEventListener('mousedown', startDrag, { passive: false });
+                handle.addEventListener('touchstart', function(e){ e.preventDefault&&e.preventDefault(); startDrag(e); }, { passive:false });
+            }
+            // also allow grabbing the card itself (but avoid starting drag when clicking on interactive children)
+            try{ el.addEventListener('pointerdown', startDrag, { passive:false }); el.addEventListener('mousedown', startDrag, { passive:false }); el.addEventListener('touchstart', function(e){ e.preventDefault&&e.preventDefault(); startDrag(e); }, { passive:false }); }catch(e){}
+            if(resetBtn){ resetBtn.addEventListener('click', function(){ try{ localStorage.removeItem(key); el.style.left=''; el.style.top=''; el.style.position=''; el.style.right='18px'; el.style.top='18px'; }catch(e){} }); }
+            window.addEventListener('resize', function(){ if(!within()) return; try{ const r = el.getBoundingClientRect(); const pad=6; const w=el.offsetWidth||170; const h=el.offsetHeight||48; let l=r.left, t=r.top; if(l + w > window.innerWidth - pad) l = Math.max(pad, window.innerWidth - w - pad); if(t + h > window.innerHeight - pad) t = Math.max(pad, window.innerHeight - h - pad); el.style.left = l+'px'; el.style.top = t+'px'; }catch(e){} });
+        })();
+
         // expose for other code if needed
         window.updateEmptyDurationsDisplay = updateEmptyDurationsDisplay;
         window.updateSolicitudDurationsDisplay = updateSolicitudDurationsDisplay;
@@ -1700,7 +2294,10 @@
     </script>
     <!-- Debug module removed -->
     <!-- Monitor module (monitorea cambios en localStorage en consola) -->
-    <script src="monitor.js"></script>
+        <!-- load Historial helpers as a top-level module so legacy code can rely on window.historialFirebase
+            (helps when the dynamic import path would otherwise run — still requires serving over http://) -->
+        <script type="module" src="./Historial.firebase.js"></script>
+        <script src="monitor.js"></script>
     <!-- Historial module (gestiona y muestra el historial de órdenes) -->
     <script src="historial.js"></script>
     <!-- LAYOUT: Botones arriba, búsqueda/gestionar abajo-izq, líneas derecha -->
@@ -1711,6 +2308,30 @@
             <button id="btn-salida" class="color-box green" type="button" aria-label="Abastecer AB">ABASTECER<br>AB</button>
             <button id="btn-anular-solicitud" class="color-box red" type="button" aria-label="Anular solicitud" style="background:linear-gradient(90deg,#ff6b6b,#ff5252);color:white;">ANULAR<br>SOLICITUD</button>
             <button id="btn-solicitar" class="color-box orange" type="button" aria-label="Solicitar parciales">SOLICITAR<br>PARCIALES</button>
+            <!-- top-info compacta: fecha y resumen de tiempos (una línea) -->
+            <div id="top-info" class="top-info top-info-compact" aria-live="polite">
+                <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <button id="top-info-handle" class="drag-handle" aria-label="Mover info" title="Mover" type="button">≡</button>
+                        <div id="current-datetime" class="now">--</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <button id="top-info-reset" class="history-reset" title="Resetear posición" aria-label="Resetear posición">⤾</button>
+                    </div>
+                    <div id="auth-controls" style="display:flex;align-items:center;gap:8px;margin-left:12px">
+                        <div id="user-info" style="font-size:12px;color:#222;min-width:140px;text-align:right"></div>
+                        <button id="btn-signin-google" class="btn" type="button" style="padding:6px 8px;font-size:12px">Entrar con Google</button>
+                        <button id="btn-signout" class="btn" type="button" style="padding:6px 8px;font-size:12px;display:none">Cerrar sesión</button>
+                    </div>
+                    </div>
+                </div>
+                <div class="durations">
+                    <div style="font-size:11px;opacity:0.85;margin-top:2px">Gestion (S→S):</div>
+                    <ul id="empty-durations-list" style="margin:0;padding:0;list-style:none;display:flex;gap:8px;align-items:center;overflow:hidden;">
+                        <!-- items injected by JS -->
+                    </ul>
+                </div>
+            </div>
         </div>
         <!-- Contenedor inferior: búsqueda izq, líneas der -->
         <div class="bottom-container">
@@ -1720,28 +2341,9 @@
                 <!-- Mantener un input oculto con id 'line-name' para compatibilidad con el JS existente. -->
                 <input id="line-name" type="text" value="" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;border:0;padding:0;margin:0" aria-hidden="true" />
                 <div id="control-status" class="status" aria-live="polite" style="font-size:11px;color:#333;display:none"></div>
-                <button id="manage-lines-btn" class="manage-btn" type="button">Gestionar líneas</button>
                 <!-- moved info panel (fecha y duraciones) -->
-                <div id="top-info" class="top-info" aria-live="polite">
-                    <div id="current-datetime" class="now">--</div>
-                    <div class="durations">
-                        <div style="font-size:12px;opacity:0.9;margin-top:6px">Tiempo de gestión (solicitud → salida):</div>
-                        <ul id="empty-durations-list"></ul>
-                    </div>
-                </div>
-                <!-- Buscador de órdenes -->
-                <div class="search-row" style="margin-top:8px">
-                    <input id="order-search" class="search-input" type="search" placeholder="Buscar en historial (ej. 12721111)" aria-label="Buscar en historial" />
-                    <button id="order-search-clear" class="search-clear" title="Limpiar búsqueda">✕</button>
-                </div>
-                <!-- Historial de últimos parciales solicitados y tiempo hasta abastecer AB -->
-                <div id="recent-history" class="top-info" aria-live="polite" style="margin-top:10px">
-                    <div style="font-weight:700;margin-bottom:6px">Últimos 5 parciales abastecidos</div>
-                    <ul id="recent-history-list" style="list-style:none;padding:6px;margin:0;max-height:200px;overflow:auto"></ul>
-                    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-                        <button id="export-history-csv" class="color-box" style="flex:0 0 auto;height:36px;padding:6px 10px;font-size:13px;background:#2563eb">Exportar Excel</button>
-                    </div>
-                </div>
+                        <!-- top-info movido a la tarjeta flotante para agrupar historial y duraciones -->
+                <!-- Historial y buscador se han movido a la tarjeta flotante (floating-history) para mejor colocación visual -->
             </div>
             <!-- Panel izquierdo: líneas y parciales -->
             <div class="right-panel">
@@ -1881,6 +2483,234 @@
         // intentar conectar inmediatamente y también tras carga completa
         attachExportButtons();
         window.addEventListener('DOMContentLoaded', attachExportButtons);
+    })();
+    // navegación por el historial: mostrar solo una entrada y permitir avanzar/retroceder
+    (function(){
+        const list = document.getElementById('recent-history-list');
+        const prev = document.getElementById('recent-prev');
+        const next = document.getElementById('recent-next');
+        if(!list) return;
+
+        // hacer la lista enfocables para accesibilidad
+        try{ list.tabIndex = 0; }catch(e){}
+
+        function getStep(){
+            // navegar exactamente por la altura del contenedor (una tarjeta completa)
+            return list.clientHeight || 170;
+        }
+
+        function stepScroll(dir){
+            const step = getStep();
+            list.scrollBy({ top: dir * step, behavior: 'smooth' });
+        }
+
+        prev && prev.addEventListener('click', ()=> stepScroll(-1));
+        next && next.addEventListener('click', ()=> stepScroll(1));
+
+        // teclas cuando la lista tiene foco
+        list.addEventListener('keydown', (e)=>{
+            if(e.key === 'ArrowDown'){ e.preventDefault(); stepScroll(1); }
+            if(e.key === 'ArrowUp'){ e.preventDefault(); stepScroll(-1); }
+        });
+
+        // mostrar/ocultar controles si hay 0 o 1 items
+        const nav = document.querySelector('#recent-history .recent-nav');
+        function adjustNavVisibility(){
+            const items = Array.from(list.querySelectorAll('li'));
+            if(!nav) return;
+            if(items.length <= 1){ nav.style.display = 'none'; }
+            else { nav.style.display = 'flex'; }
+        }
+
+        const obs = new MutationObserver(adjustNavVisibility);
+        obs.observe(list, { childList: true, subtree: false });
+        // run once now in case items are already present
+        adjustNavVisibility();
+    })();
+
+    // Posicionar el panel de historial de forma segura para evitar solapamientos
+    (function(){
+        const history = document.getElementById('floating-history');
+        if(!history) return;
+
+        function positionHistory(){
+            // en pantallas pequeñas dejamos la posición estática (CSS media query ya maneja esto)
+            if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){
+                history.style.position = '';
+                history.style.left = '';
+                history.style.top = '';
+                history.style.right = '';
+                return;
+            }
+
+            const topControls = document.querySelector('.top-controls');
+            const actions = document.getElementById('floating-actions');
+
+            let left = 18 + window.scrollX;
+            // si hay acciones flotantes a la izquierda, colocamos el historial a su derecha
+            if(actions){
+                try{ left = Math.round(actions.getBoundingClientRect().right) + 12 + window.scrollX; }catch(e){}
+            }
+
+            // if the history panel has been explicitly locked to a fixed position, avoid repositioning it
+            try{
+                if(history && history.dataset && history.dataset.fixed === 'true') return;
+            }catch(e){}
+
+            // colocamos el historial justo debajo de la fila superior (top-controls)
+            let top = 18 + window.scrollY;
+            if(topControls){
+                try{ top = Math.round(topControls.getBoundingClientRect().bottom) + 10 + window.scrollY; }catch(e){}
+            }
+
+            // asegurar que no salga del viewport por la derecha
+            const w = Math.min(history.offsetWidth || 300, 360);
+            if(left + w > window.innerWidth - 18){ left = Math.max(18, window.innerWidth - w - 18); }
+
+            history.style.position = 'fixed';
+            history.style.left = left + 'px';
+            history.style.top = top + 'px';
+            history.style.right = 'auto';
+            history.style.zIndex = 115;
+        }
+
+        // recalcular en eventos clave
+        window.addEventListener('resize', positionHistory);
+        window.addEventListener('scroll', positionHistory);
+        window.addEventListener('DOMContentLoaded', positionHistory);
+        // run once now
+        setTimeout(positionHistory, 40);
+
+        // --- floating-history behavior: can be draggable/persisted OR fixed ---
+        (function(){
+            // toggle this to true if later you want the history panel draggable again
+            const FLOATING_HISTORY_DRAGGABLE = false;
+            // If you want this panel locked to an exact viewport position, set fixed coords here
+            // (left, top) in pixels. Set to null to let positionHistory compute a place automatically.
+            // moved a bit higher as requested
+            const FLOATING_HISTORY_FIXED_POS = { left: 380, top: 10 };
+            const key = 'pk_floating_history_pos';
+               const el = document.getElementById('floating-history');
+            if(!el) return;
+
+            // apply persisted position if present and screen is wide enough
+            function applySaved(){
+                try{
+                    if(window.matchMedia && window.matchMedia('(max-width:900px)').matches) return; // ignore mobile
+                    const raw = localStorage.getItem(key);
+                    if(!raw) return;
+                    const pos = JSON.parse(raw);
+                    if(pos && typeof pos.left === 'number' && typeof pos.top === 'number'){
+                        el.style.position = 'fixed';
+                        el.style.left = Math.max(8, Math.min(window.innerWidth - (el.offsetWidth||300) - 8, pos.left)) + 'px';
+                        el.style.top = Math.max(8, Math.min(window.innerHeight - (el.offsetHeight||150) - 8, pos.top)) + 'px';
+                        el.style.right = 'auto';
+                    }
+                }catch(e){ console.warn('applySaved pos failed', e); }
+            }
+            // if we're using draggable mode apply previously saved position, otherwise keep fixed layout
+            if(FLOATING_HISTORY_DRAGGABLE){
+                // initial apply on load
+                applySaved();
+            } else {
+                // clear any previously stored position so old values don't move the panel
+                try{ localStorage.removeItem(key); }catch(e){}
+                // if a fixed position was requested, apply it exactly; otherwise use the default placement
+                try{
+                    if(FLOATING_HISTORY_FIXED_POS && typeof FLOATING_HISTORY_FIXED_POS.left === 'number'){
+                        el.style.position = 'fixed';
+                        el.style.left = Math.max(8, Math.min(window.innerWidth - (el.offsetWidth||300) - 8, FLOATING_HISTORY_FIXED_POS.left)) + 'px';
+                        el.style.top = Math.max(8, Math.min(window.innerHeight - (el.offsetHeight||150) - 8, FLOATING_HISTORY_FIXED_POS.top)) + 'px';
+                        el.style.right = 'auto';
+                        el.style.zIndex = 115;
+                        // mark as fixed so positionHistory won't move it later
+                        try{ el.dataset.fixed = 'true'; }catch(e){}
+                    } else { positionHistory(); }
+                }catch(e){ positionHistory(); }
+            }
+
+            let dragging = false; let startX=0, startY=0, startLeft=0, startTop=0, pointerId=null;
+
+            const handle = el.querySelector('.drag-handle');
+            const resetBtn = document.getElementById('floating-history-reset');
+
+            function withinDesktop(){ return !(window.matchMedia && window.matchMedia('(max-width:900px)').matches); }
+
+            function onPointerMove(e){
+                if(!dragging) return;
+                const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] && e.touches[0].clientX);
+                const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] && e.touches[0].clientY);
+                if(clientX == null || clientY == null) return;
+                let nx = Math.round(startLeft + (clientX - startX));
+                let ny = Math.round(startTop + (clientY - startY));
+                // constrain to viewport with small padding
+                const pad = 8;
+                const w = el.offsetWidth || 300;
+                const h = el.offsetHeight || 150;
+                nx = Math.max(pad, Math.min(window.innerWidth - w - pad, nx));
+                ny = Math.max(pad, Math.min(window.innerHeight - h - pad, ny));
+                el.style.left = nx + 'px';
+                el.style.top = ny + 'px';
+            }
+
+            function onPointerUp(e){
+                if(!dragging) return;
+                dragging = false;
+                el.classList.remove('dragging');
+                // persist
+                try{
+                    const l = parseInt(el.style.left||0,10); const t = parseInt(el.style.top||0,10);
+                    localStorage.setItem(key, JSON.stringify({ left: l, top: t }));
+                }catch(err){ console.warn('save pos failed', err); }
+                // cleanup
+                document.removeEventListener('pointermove', onPointerMove);
+                document.removeEventListener('pointerup', onPointerUp);
+                document.removeEventListener('touchmove', onPointerMove);
+                document.removeEventListener('touchend', onPointerUp);
+                try{ if(pointerId && e.target && e.target.releasePointerCapture) e.target.releasePointerCapture(pointerId); }catch(e){}
+                pointerId = null;
+            }
+
+            function startDrag(e){
+                if(!withinDesktop()) return;
+                e.preventDefault && e.preventDefault();
+                dragging = true; el.classList.add('dragging');
+                startX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] && e.touches[0].clientX);
+                startY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] && e.touches[0].clientY);
+                startLeft = parseInt(el.style.left||el.getBoundingClientRect().left||0,10);
+                startTop = parseInt(el.style.top||el.getBoundingClientRect().top||0,10);
+                // capture pointer
+                pointerId = e.pointerId || null;
+                try{ if(pointerId && e.target && e.target.setPointerCapture) e.target.setPointerCapture(pointerId); }catch(e){}
+
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerUp);
+                document.addEventListener('touchmove', onPointerMove, { passive: false });
+                document.addEventListener('touchend', onPointerUp);
+            }
+
+            // only wire drag handlers when draggable allowed
+            if(FLOATING_HISTORY_DRAGGABLE && handle){
+                handle.addEventListener('pointerdown', startDrag);
+                handle.addEventListener('touchstart', function(e){ e.preventDefault && e.preventDefault(); startDrag(e); }, { passive:false });
+            }
+
+            // if not draggable, hide/reset button to avoid confusion
+            if(resetBtn){
+                if(FLOATING_HISTORY_DRAGGABLE){
+                    resetBtn.addEventListener('click', function(){ try{ localStorage.removeItem(key); positionHistory(); applySaved(); }catch(e){ } });
+                } else {
+                    // visually disable/reset button when history is fixed
+                    try{ resetBtn.style.opacity = '0.5'; resetBtn.title = 'Panel fijo — reset deshabilitado'; }catch(e){}
+                }
+            }
+
+            // if resized or scrolled keep position sane
+            window.addEventListener('resize', ()=>{ if(!withinDesktop()) return; // keep current pos
+                // ensure still inside viewport
+                try{ const rect = el.getBoundingClientRect(); const pad=8; const w=el.offsetWidth||300; const h=el.offsetHeight||150; let l = rect.left; let t = rect.top; if(l + w > window.innerWidth - pad) l = Math.max(pad, window.innerWidth - w - pad); if(t + h > window.innerHeight - pad) t = Math.max(pad, window.innerHeight - h - pad); el.style.left = l + 'px'; el.style.top = t + 'px'; }catch(e){}
+            });
+        })();
     })();
     </script>
 
