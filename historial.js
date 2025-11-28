@@ -1,5 +1,5 @@
 /**
- * Historial.js - Gestión completa del historial de órdenes de producción
+ * Historial.firebase.js - Gestión completa del historial de órdenes de producción
  * 
  * Funcionalidades:
  * - Muestra las últimas 5 órdenes de producción
@@ -335,3 +335,4 @@
         console.log('  - window.historialModule.limpiar() — Borrar historial completo');
     }
 })();
+
