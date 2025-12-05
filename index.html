@@ -818,6 +818,23 @@
             });
         }
     })();
+    // ==========================================
+    // CARGAR DATOS DESDE FIREBASE AL INICIAR
+    // ==========================================
+    (async function(){
+        try{
+            if(window.firebaseInitPromise){
+                await window.firebaseInitPromise;
+            }
+            console.log('🚀 Cargando datos desde Firebase al iniciar...');
+            await loadAllDataFromFirebase();
+            // Iniciar listeners en tiempo real después de la carga inicial
+            await initFirebaseSync();
+        }catch(e){
+            console.warn('⚠ Error en carga inicial de Firebase:', e);
+        }
+    })();
+
     document.addEventListener('DOMContentLoaded', function(){
         const input = document.getElementById('line-name');
         const btnAdd = document.getElementById('btn-entrada');
@@ -3058,6 +3075,7 @@
                 #panel-control-interno .panel-actions button:hover { transform: translateY(-3px); box-shadow:0 18px 36px rgba(12,20,30,0.12); }
                 #btn-cerrar-panel { position:absolute; left:14px; top:14px; background:#fff; border:1px solid #e6e6e9; padding:8px 12px; border-radius:8px; color:#333; }
                 #panel-export-excel { background:linear-gradient(90deg,#f59e0b,#f97316); }
+                #panel-sync-firebase { background:linear-gradient(90deg,#3b82f6,#0ea5e9); }
                 #panel-refresh-db { background:#6b7280; }
                 #panel-reset-firebase { background:#ef4444; }
                 #panel-change-pass { background:#10b981; }
@@ -3073,6 +3091,7 @@
                 <h2 style="text-align:center;">Panel de Control</h2>
                 <div class="panel-actions">
                     <button id="panel-export-excel">Exportar Excel</button>
+                    <button id="panel-sync-firebase">🔄 Sincronizar desde Firebase</button>
                     <button id="panel-refresh-db">Refrescar Datos</button>
                     <button id="panel-reset-firebase">Reiniciar Firebase</button>
                 </div>
@@ -3258,79 +3277,156 @@
     }
 
     // ==========================================
-    // INICIALIZAR LISTENERS DE FIREBASE (SINCRONIZACIÓN EN TIEMPO REAL)
+    // CARGAR DATOS SOLO DESDE FIREBASE (Firebase como fuente única de verdad)
+    // ==========================================
+    async function loadAllDataFromFirebase(){
+        try{
+            if(!window.db){
+                console.warn('⚠ Firebase no disponible. No se pueden cargar datos.');
+                return;
+            }
+
+            console.log('📥 Descargando TODOS los datos desde Firebase...');
+
+            // Cargar cada colección de Firebase
+            let kanbanData = {};
+            let solicitudesData = {};
+            let abastecimientosData = {};
+            let anulacionesData = {};
+
+            // Usar Promises para cargar en paralelo
+            await Promise.all([
+                new Promise(resolve => {
+                    window.db.ref('kanban_estado').once('value', (snap) => {
+                        kanbanData = snap.val() || {};
+                        console.log('✅ Kanban desde Firebase:', kanbanData);
+                        resolve();
+                    });
+                }),
+                new Promise(resolve => {
+                    window.db.ref('solicitudes').once('value', (snap) => {
+                        solicitudesData = snap.val() || {};
+                        console.log('✅ Solicitudes desde Firebase:', solicitudesData);
+                        resolve();
+                    });
+                }),
+                new Promise(resolve => {
+                    window.db.ref('abastecimientos').once('value', (snap) => {
+                        abastecimientosData = snap.val() || {};
+                        console.log('✅ Abastecimientos desde Firebase:', abastecimientosData);
+                        resolve();
+                    });
+                }),
+                new Promise(resolve => {
+                    window.db.ref('anulaciones').once('value', (snap) => {
+                        anulacionesData = snap.val() || {};
+                        console.log('✅ Anulaciones desde Firebase:', anulacionesData);
+                        resolve();
+                    });
+                })
+            ]);
+
+            // Guardar SOLO en localStorage (como caché, no como fuente de verdad)
+            localStorage.setItem('json_kanban_state', JSON.stringify(kanbanData, null, 2));
+            localStorage.setItem('json_solicitudes', JSON.stringify(solicitudesData, null, 2));
+            localStorage.setItem('json_abastecimientos', JSON.stringify(abastecimientosData, null, 2));
+            localStorage.setItem('json_anulaciones', JSON.stringify(anulacionesData, null, 2));
+
+            console.log('✅ Todos los datos cargados desde Firebase correctamente');
+            
+            // Recargar la página para reflejar los cambios
+            console.log('🔄 Recargando página...');
+            setTimeout(() => { window.location.reload(); }, 500);
+
+            return true;
+        }catch(e){
+            console.error('❌ Error descargando datos desde Firebase:', e);
+            return false;
+        }
+    }
+
+    // ==========================================
+    // ESCUCHAR CAMBIOS EN TIEMPO REAL (Listeners activos)
     // ==========================================
     async function initFirebaseSync(){
         try{
-            // Esperar a que Firebase esté disponible
             if(window.firebaseInitPromise){
                 await window.firebaseInitPromise;
             }
             
-            // Si Firebase no está disponible, no hacer nada
             if(!window.db){
-                console.warn('⚠ Firebase DB no disponible. Sincronización deshabilitada.');
+                console.warn('⚠ Firebase DB no disponible.');
                 return;
             }
 
-            // Escuchar cambios en kanban_estado en tiempo real
-            if(window.FirebaseSync){
-                window.FirebaseSync.onKanbanStateChange((firebaseKanban) => {
-                    try{
-                        // Comparar con localStorage - si son diferentes, actualizar localStorage
-                        const localKanban = JSON.parse(localStorage.getItem('json_kanban_state')||'{}');
-                        if(JSON.stringify(localKanban) !== JSON.stringify(firebaseKanban)){
-                            localStorage.setItem('json_kanban_state', JSON.stringify(firebaseKanban, null, 2));
-                            console.log('🔄 Kanban actualizado desde Firebase en tiempo real');
-                            // No necesita re-render aquí, solo sincronizar localStorage
-                        }
-                    }catch(e){ console.warn('⚠ Error sincronizando kanban desde Firebase:', e); }
-                });
+            console.log('🔊 Iniciando listeners de Firebase en tiempo real...');
 
-                window.FirebaseSync.onSolicitudesChange((firebaseSolicitudes) => {
-                    try{
-                        const localSolicitudes = JSON.parse(localStorage.getItem('json_solicitudes')||'{}');
-                        if(JSON.stringify(localSolicitudes) !== JSON.stringify(firebaseSolicitudes)){
-                            localStorage.setItem('json_solicitudes', JSON.stringify(firebaseSolicitudes, null, 2));
-                            console.log('🔄 Solicitudes actualizadas desde Firebase en tiempo real');
-                        }
-                    }catch(e){ console.warn('⚠ Error sincronizando solicitudes desde Firebase:', e); }
-                });
+            // Escuchar cambios en kanban_estado
+            window.db.ref('kanban_estado').on('value', (snap) => {
+                const firebaseKanban = snap.val() || {};
+                localStorage.setItem('json_kanban_state', JSON.stringify(firebaseKanban, null, 2));
+                console.log('🔄 Kanban actualizado desde Firebase en tiempo real:', firebaseKanban);
+                // Recargar página para reflejar cambios
+                setTimeout(() => { window.location.reload(); }, 1000);
+            });
 
-                window.FirebaseSync.onAbastecimientosChange((firebaseAbastecimientos) => {
-                    try{
-                        const localAbastecimientos = JSON.parse(localStorage.getItem('json_abastecimientos')||'{}');
-                        if(JSON.stringify(localAbastecimientos) !== JSON.stringify(firebaseAbastecimientos)){
-                            localStorage.setItem('json_abastecimientos', JSON.stringify(firebaseAbastecimientos, null, 2));
-                            console.log('🔄 Abastecimientos actualizados desde Firebase en tiempo real');
-                        }
-                    }catch(e){ console.warn('⚠ Error sincronizando abastecimientos desde Firebase:', e); }
-                });
-            }
+            // Escuchar cambios en solicitudes
+            window.db.ref('solicitudes').on('value', (snap) => {
+                const firebaseSolicitudes = snap.val() || {};
+                localStorage.setItem('json_solicitudes', JSON.stringify(firebaseSolicitudes, null, 2));
+                console.log('🔄 Solicitudes actualizadas desde Firebase en tiempo real');
+            });
+
+            // Escuchar cambios en abastecimientos
+            window.db.ref('abastecimientos').on('value', (snap) => {
+                const firebaseAbastecimientos = snap.val() || {};
+                localStorage.setItem('json_abastecimientos', JSON.stringify(firebaseAbastecimientos, null, 2));
+                console.log('🔄 Abastecimientos actualizados desde Firebase en tiempo real');
+            });
+
+            // Escuchar cambios en anulaciones
+            window.db.ref('anulaciones').on('value', (snap) => {
+                const firebaseAnulaciones = snap.val() || {};
+                localStorage.setItem('json_anulaciones', JSON.stringify(firebaseAnulaciones, null, 2));
+                console.log('🔄 Anulaciones actualizadas desde Firebase en tiempo real');
+            });
             
-            console.log('✅ Firebase Sync listeners inicializados correctamente');
+            console.log('✅ Listeners de Firebase inicializados correctamente');
         }catch(e){
-            console.warn('⚠ Error inicializando Firebase sync listeners:', e.message);
+            console.warn('⚠ Error inicializando Firebase listeners:', e.message);
         }
-    }
-
-    // Ejecutar inicializador de Firebase cuando el DOM esté listo
-    if(document.readyState === 'loading'){
-        document.addEventListener('DOMContentLoaded', initFirebaseSync);
-    } else {
-        setTimeout(initFirebaseSync, 500); // Dar tiempo a que Firebase se inicialice
     }
 
     document.addEventListener('DOMContentLoaded', ()=>{
         const panel = document.getElementById('panel-control-interno');
         const btnCerrar = document.getElementById('btn-cerrar-panel');
         const btnExport = document.getElementById('panel-export-excel');
+        const btnSync = document.getElementById('panel-sync-firebase');
         const btnRefresh = document.getElementById('panel-refresh-db');
         const btnReset = document.getElementById('panel-reset-firebase');
         const btnChangePass = document.getElementById('panel-change-pass');
         const inputNewPass = document.getElementById('panel-new-pass');
         if(btnCerrar) btnCerrar.addEventListener('click', ()=>{ panel.style.display='none'; document.body.style.overflow=''; try{ window.scrollTo(0,0); }catch(e){} });
         if(btnExport){ btnExport.addEventListener('click', async ()=>{ try{ await exportAllData(); }catch(e){ console.warn('export button fallback', e); if(window.historialModule && window.historialModule.exportar) window.historialModule.exportar(); else alert('Función exportar no disponible.'); } }); }
+        if(btnSync){ btnSync.addEventListener('click', async ()=>{ 
+            try{ 
+                btnSync.disabled = true; 
+                btnSync.textContent = '⏳ Sincronizando desde Firebase...';
+                const success = await loadAllDataFromFirebase(); 
+                if(success){
+                    alert('✅ Página recargada con datos de Firebase.');
+                } else {
+                    alert('⚠ Error sincronizando. Revisa la consola.');
+                }
+                btnSync.textContent = '🔄 Sincronizar desde Firebase';
+                btnSync.disabled = false;
+            }catch(e){ 
+                console.error('Error sincronizando:', e);
+                alert('❌ Error sincronizando: ' + (e.message || String(e)));
+                btnSync.textContent = '🔄 Sincronizar desde Firebase';
+                btnSync.disabled = false;
+            } 
+        }); }
         if(btnRefresh){ btnRefresh.addEventListener('click', ()=>{ renderPanelContent(); }); }
         if(btnReset){ btnReset.addEventListener('click', async ()=>{
             try{
