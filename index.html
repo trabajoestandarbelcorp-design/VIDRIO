@@ -2892,7 +2892,7 @@
                 return abastecimientos;
             },
 
-            // Guardar datos en localStorage (sincronización automática)
+            // Guardar datos en localStorage + Firebase (sincronización automática)
             syncAll() {
                 try {
                     const kanban = this.getCurrentKanbanState();
@@ -2900,12 +2900,20 @@
                     const abastecimientos = this.getCurrentAbastecimientos();
                     const anulaciones = [];
                     
+                    // Guardar en localStorage
                     localStorage.setItem('json_kanban_state', JSON.stringify(kanban, null, 2));
                     localStorage.setItem('json_solicitudes', JSON.stringify(solicitudes, null, 2));
                     localStorage.setItem('json_abastecimientos', JSON.stringify(abastecimientos, null, 2));
                     localStorage.setItem('json_anulaciones', JSON.stringify(anulaciones, null, 2));
                     
-                    console.log('✅ Datos sincronizados en localStorage');
+                    // Guardar en Firebase en tiempo real
+                    if(window.db && window.FirebaseSync){
+                        window.db.ref('kanban_estado').set(kanban).catch(e=>console.warn('⚠ Error en Firebase kanban:', e.message));
+                        window.db.ref('solicitudes').set(solicitudes).catch(e=>console.warn('⚠ Error en Firebase solicitudes:', e.message));
+                        window.db.ref('abastecimientos').set(abastecimientos).catch(e=>console.warn('⚠ Error en Firebase abastecimientos:', e.message));
+                    }
+                    
+                    console.log('✅ Datos sincronizados en localStorage y Firebase');
                 } catch(e) {
                     console.error('❌ Error sincronizando:', e);
                 }
@@ -3081,12 +3089,21 @@
         </div>
     </body>
 <!-- Removed duplicate closing html tag -->
+    <!-- SheetJS Library for Excel generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-    // Funciones utilitarias para exportar datos (JSON + CSV)
+    // Funciones utilitarias para exportar datos - UN ÚNICO EXCEL con 5 pestañas
     async function exportAllData(){
         try{
-            const paths = ['historial','abastecimientos','solicitudes','anulaciones','kanban_estado'];
+            if(!window.XLSX){
+                alert('❌ Librería XLSX no cargada. Intenta de nuevo en 2 segundos.');
+                return;
+            }
+            
             const result = {};
+            const paths = ['solicitudes','abastecimientos','anulaciones','historial','kanban_estado'];
+            
+            // Cargar datos desde localStorage o Firebase
             if(window.db){
                 for(const p of paths){
                     try{
@@ -3095,31 +3112,87 @@
                     }catch(e){ console.warn('Error leyendo',p,e); result[p] = {}; }
                 }
             } else {
-                // fallback: intentar leer desde módulos locales
-                result.historial = (window.historialModule && window.historialModule.obtenerHistorial && window.historialModule.obtenerHistorial()) || {};
-                // otros pueden estar en localStorage
                 try{ result.solicitudes = JSON.parse(localStorage.getItem('json_solicitudes')||'{}'); }catch(e){ result.solicitudes = {}; }
                 try{ result.abastecimientos = JSON.parse(localStorage.getItem('json_abastecimientos')||'{}'); }catch(e){ result.abastecimientos = {}; }
                 try{ result.anulaciones = JSON.parse(localStorage.getItem('json_anulaciones')||'{}'); }catch(e){ result.anulaciones = {}; }
+                try{ result.historial = (window.historialModule && window.historialModule.obtenerHistorial && window.historialModule.obtenerHistorial()) || {}; }catch(e){ result.historial = {}; }
                 try{ result.kanban_estado = JSON.parse(localStorage.getItem('json_kanban_state')||'{}'); }catch(e){ result.kanban_estado = {}; }
             }
 
-            // Descargar JSON completo
-            const now = new Date().toISOString().replace(/[:.]/g,'-');
-            const jsonBlob = new Blob([JSON.stringify(result,null,2)], {type:'application/json'});
-            downloadBlob(`backup_vidrio_${now}.json`, jsonBlob);
-
-            // Descargar CSV por colección
-            for(const key of Object.keys(result)){
-                const obj = result[key] || {};
-                const arr = Array.isArray(obj) ? obj : Object.keys(obj).map(id => Object.assign({id}, obj[id]));
-                if(arr.length === 0) continue;
-                const csv = objArrayToCSV(arr);
-                const blob = new Blob([csv], {type:'text/csv'});
-                downloadBlob(`backup_${key}_${now}.csv`, blob);
+            // Crear workbook Excel con 5 hojas
+            const wb = XLSX.utils.book_new();
+            
+            // HOJA 1: Solicitudes
+            const solicitudes = result.solicitudes || {};
+            const solArray = Array.isArray(solicitudes) ? solicitudes : Object.entries(solicitudes).map(([id,v])=>({id,...v}));
+            if(solArray.length > 0){
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(solArray.map(s=>({
+                    'Línea': s.linea || s.line || '',
+                    'Orden Producción': s.orden_produccion || s.orderNumber || '',
+                    'Fecha Solicitud': s.fecha_solicitud || s.requestedAt || '',
+                    'Hora Solicitud': s.hora_solicitud || '',
+                    'Timestamp': s.timestamp || ''
+                }))), 'Solicitudes');
             }
-            alert('✅ Exportación completada. Se descargaron JSON y CSVs.');
-        }catch(e){ console.error('exportAllData error', e); alert('Error exportando datos. Revisa la consola.'); }
+            
+            // HOJA 2: Abastecimientos
+            const abastecimientos = result.abastecimientos || {};
+            const abastArray = Array.isArray(abastecimientos) ? abastecimientos : Object.entries(abastecimientos).map(([id,v])=>({id,...v}));
+            if(abastArray.length > 0){
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(abastArray.map(a=>({
+                    'Línea': a.linea || a.line || '',
+                    'Orden Producción': a.orden_produccion || a.orderNumber || '',
+                    'Fecha Abastecimiento': a.fecha_abastecimiento || a.suppliedAt || '',
+                    'Hora Abastecimiento': a.hora_abastecimiento || '',
+                    'Timestamp': a.timestamp || ''
+                }))), 'Abastecimientos');
+            }
+            
+            // HOJA 3: Anulaciones
+            const anulaciones = result.anulaciones || {};
+            const anulArray = Array.isArray(anulaciones) ? anulaciones : Object.entries(anulaciones).map(([id,v])=>({id,...v}));
+            if(anulArray.length > 0){
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(anulArray.map(an=>({
+                    'Línea': an.linea || an.line || '',
+                    'Orden Producción': an.orden_produccion || an.orderNumber || '',
+                    'Fecha Anulación': an.fecha_anulacion || '',
+                    'Hora Anulación': an.hora_anulacion || '',
+                    'Timestamp': an.timestamp || ''
+                }))), 'Anulaciones');
+            }
+            
+            // HOJA 4: Historial
+            const historial = result.historial || {};
+            const histArray = Array.isArray(historial) ? historial : Object.entries(historial).map(([id,v])=>({id,...v}));
+            if(histArray.length > 0){
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(histArray.map(h=>({
+                    'Nombre': h.name || h.nombre || '',
+                    'Línea': h.line || h.linea || '',
+                    'Índice': h.index || h.idx || '',
+                    'Solicitado': h.requestedAt || h.fecha_solicitud || '',
+                    'Abastecido': h.suppliedAt || h.fecha_abastecimiento || '',
+                    'Duración': h.duration || h.duracion || ''
+                }))), 'Historial');
+            }
+            
+            // HOJA 5: Estado Kanban
+            const kanban = result.kanban_estado || {};
+            const kanbanArray = Array.isArray(kanban) ? kanban : Object.entries(kanban).map(([nombre_linea,v])=>({
+                'Línea': nombre_linea,
+                'Órdenes': Array.isArray(v?.ordenes) ? v.ordenes.join(', ') : (v?.ordenes || '')
+            }));
+            if(kanbanArray.length > 0){
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kanbanArray), 'Kanban');
+            }
+            
+            // Descargar archivo
+            const fecha = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `estado-vidrio-${fecha}.xlsx`);
+            alert('✅ Excel con 5 pestañas descargado correctamente.');
+        }catch(e){ 
+            console.error('exportAllData error', e); 
+            alert('❌ Error exportando datos:\n' + (e.message || String(e))); 
+        }
     }
 
     function downloadBlob(filename, blob){
@@ -3144,8 +3217,8 @@
             const row = headers.map(h=>{
                 let v = o[h] !== undefined ? o[h] : '';
                 if(v === null) v = '';
-                v = String(v).replace(/"/g, '\\\"\\\"');
-                if(v.indexOf(',')!==-1 || v.indexOf('\n')!==-1) v = '\\\"'+v+'\\\"';
+                v = String(v).replace(/"/g, '""');
+                if(v.indexOf(',')!==-1 || v.indexOf('\n')!==-1) v = '"'+v+'"';
                 return v;
             }).join(',');
             lines.push(row);
@@ -3182,6 +3255,70 @@
                 }
             }
         }catch(e){ listEl.innerHTML = '<em>Error cargando historial.</em>'; console.error(e); }
+    }
+
+    // ==========================================
+    // INICIALIZAR LISTENERS DE FIREBASE (SINCRONIZACIÓN EN TIEMPO REAL)
+    // ==========================================
+    async function initFirebaseSync(){
+        try{
+            // Esperar a que Firebase esté disponible
+            if(window.firebaseInitPromise){
+                await window.firebaseInitPromise;
+            }
+            
+            // Si Firebase no está disponible, no hacer nada
+            if(!window.db){
+                console.warn('⚠ Firebase DB no disponible. Sincronización deshabilitada.');
+                return;
+            }
+
+            // Escuchar cambios en kanban_estado en tiempo real
+            if(window.FirebaseSync){
+                window.FirebaseSync.onKanbanStateChange((firebaseKanban) => {
+                    try{
+                        // Comparar con localStorage - si son diferentes, actualizar localStorage
+                        const localKanban = JSON.parse(localStorage.getItem('json_kanban_state')||'{}');
+                        if(JSON.stringify(localKanban) !== JSON.stringify(firebaseKanban)){
+                            localStorage.setItem('json_kanban_state', JSON.stringify(firebaseKanban, null, 2));
+                            console.log('🔄 Kanban actualizado desde Firebase en tiempo real');
+                            // No necesita re-render aquí, solo sincronizar localStorage
+                        }
+                    }catch(e){ console.warn('⚠ Error sincronizando kanban desde Firebase:', e); }
+                });
+
+                window.FirebaseSync.onSolicitudesChange((firebaseSolicitudes) => {
+                    try{
+                        const localSolicitudes = JSON.parse(localStorage.getItem('json_solicitudes')||'{}');
+                        if(JSON.stringify(localSolicitudes) !== JSON.stringify(firebaseSolicitudes)){
+                            localStorage.setItem('json_solicitudes', JSON.stringify(firebaseSolicitudes, null, 2));
+                            console.log('🔄 Solicitudes actualizadas desde Firebase en tiempo real');
+                        }
+                    }catch(e){ console.warn('⚠ Error sincronizando solicitudes desde Firebase:', e); }
+                });
+
+                window.FirebaseSync.onAbastecimientosChange((firebaseAbastecimientos) => {
+                    try{
+                        const localAbastecimientos = JSON.parse(localStorage.getItem('json_abastecimientos')||'{}');
+                        if(JSON.stringify(localAbastecimientos) !== JSON.stringify(firebaseAbastecimientos)){
+                            localStorage.setItem('json_abastecimientos', JSON.stringify(firebaseAbastecimientos, null, 2));
+                            console.log('🔄 Abastecimientos actualizados desde Firebase en tiempo real');
+                        }
+                    }catch(e){ console.warn('⚠ Error sincronizando abastecimientos desde Firebase:', e); }
+                });
+            }
+            
+            console.log('✅ Firebase Sync listeners inicializados correctamente');
+        }catch(e){
+            console.warn('⚠ Error inicializando Firebase sync listeners:', e.message);
+        }
+    }
+
+    // Ejecutar inicializador de Firebase cuando el DOM esté listo
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', initFirebaseSync);
+    } else {
+        setTimeout(initFirebaseSync, 500); // Dar tiempo a que Firebase se inicialice
     }
 
     document.addEventListener('DOMContentLoaded', ()=>{
