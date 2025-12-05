@@ -359,6 +359,138 @@
             .column{ min-width:92px; max-width:160px }
             .block{ height:50px; width:90% }
         }
+        /* ===== OPTIMIZACIÓN MÓVIL ===== */
+        @media (max-width:768px){
+            body {
+                padding: 4px;
+                gap: 8px;
+                padding-bottom: 70px;
+                transform: scale(1);
+            }
+            .container {
+                gap: 8px;
+                padding: 8px 4px;
+                flex-wrap: wrap;
+                width: 100vw;
+                overflow-x: auto;
+            }
+            .column {
+                min-width: 100px;
+                max-width: 140px;
+                padding: 6px 4px;
+                flex-shrink: 0;
+            }
+            .column-header {
+                font-size: 14px;
+                padding: 3px 4px;
+                margin-bottom: 6px;
+            }
+            .block {
+                height: 48px;
+                width: 88%;
+                margin: 6px 0;
+                font-size: 14px;
+            }
+            .block .label {
+                font-size: 13px;
+            }
+            .main-container {
+                gap: 8px;
+            }
+            .top-controls {
+                grid-template-columns: 1fr;
+                gap: 8px 12px;
+                padding: 4px 0;
+            }
+            .top-controls button {
+                height: 48px;
+                font-size: 12px;
+                padding: 8px 12px;
+                border-radius: 8px;
+            }
+            .floating-actions {
+                flex-direction: column;
+                gap: 6px;
+                left: 4px;
+                top: 4px;
+            }
+            .manage-btn, .export-btn {
+                padding: 8px 10px;
+                font-size: 11px;
+                height: 40px;
+                border-radius: 6px;
+                min-width: 70px;
+            }
+            .floating-history {
+                margin: 8px 4px;
+                width: calc(100% - 8px);
+            }
+            .history-card {
+                padding: 8px;
+                font-size: 12px;
+                max-height: 180px;
+            }
+            .bottom-container {
+                padding: 8px 4px;
+                gap: 8px;
+            }
+        }
+        @media (max-width:480px){
+            body {
+                padding: 2px;
+                gap: 4px;
+                padding-bottom: 66px;
+            }
+            .container {
+                gap: 4px;
+                padding: 4px 2px;
+            }
+            .column {
+                min-width: 80px;
+                max-width: 120px;
+                padding: 4px 2px;
+            }
+            .column-header {
+                font-size: 12px;
+                padding: 2px 3px;
+                margin-bottom: 4px;
+            }
+            .block {
+                height: 44px;
+                width: 85%;
+                margin: 4px 0;
+                font-size: 12px;
+            }
+            .top-controls {
+                grid-template-columns: 1fr;
+                gap: 6px;
+                padding: 2px 0;
+            }
+            .top-controls button {
+                height: 44px;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+            .floating-actions {
+                left: 2px;
+                top: 2px;
+            }
+            .manage-btn, .export-btn {
+                padding: 6px 8px;
+                font-size: 10px;
+                height: 36px;
+                min-width: 60px;
+            }
+            .col-sol-timer, .col-empty-timer {
+                font-size: 10px;
+                padding: 2px 4px;
+            }
+            .history-card {
+                padding: 6px;
+                font-size: 11px;
+                max-height: 150px;
+            }
+        }
     /* panel derecho: contenedor de líneas */
     .right-panel {
         flex: 1;
@@ -725,6 +857,75 @@
     .manage-item{ display:flex; gap:8px; align-items:center }
     .manage-item input{ padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08) }
     .manage-actions{ display:flex; gap:8px; margin-top:12px }
+    
+    /* ===== BARRA DE NAVEGACIÓN MÓVIL ===== */
+    @media (max-width:768px){
+        #mobile-bottom-nav {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, #ffffff, #fbfdff);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            gap: 0;
+            z-index: 110;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+        }
+        
+        #mobile-bottom-nav button {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-top: 3px solid transparent;
+            color: #666;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            transition: all 120ms ease;
+            padding: 4px 0;
+        }
+        
+        #mobile-bottom-nav button:active,
+        #mobile-bottom-nav button.active {
+            border-top-color: #3b82f6;
+            color: #3b82f6;
+            background: rgba(59,130,246,0.05);
+        }
+        
+        #mobile-bottom-nav .icon {
+            font-size: 18px;
+        }
+        
+        /* Agregar padding inferior al body para que no se oculte contenido */
+        body {
+            padding-bottom: 70px;
+        }
+        
+        @media (max-width:480px){
+            #mobile-bottom-nav {
+                height: 56px;
+            }
+            #mobile-bottom-nav button {
+                font-size: 10px;
+            }
+            body {
+                padding-bottom: 66px;
+            }
+        }
+    }
+    
+    @media (min-width:769px){
+        #mobile-bottom-nav {
+            display: none !important;
+        }
+    }
 </style>
 <!-- Firebase SDK (compat - works without modules) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -733,6 +934,26 @@
 <script src="firebase-sync.js"></script>
 </head>
 <body>
+    <!-- Barra de navegación inferior (solo en móvil) -->
+    <div id="mobile-bottom-nav">
+        <button id="nav-kanban" class="active" data-tab="kanban">
+            <span class="icon">📊</span>
+            <span>Kanban</span>
+        </button>
+        <button id="nav-panel" data-tab="panel">
+            <span class="icon">⚙️</span>
+            <span>Panel</span>
+        </button>
+        <button id="nav-export" data-tab="export">
+            <span class="icon">📥</span>
+            <span>Exportar</span>
+        </button>
+        <button id="nav-sync" data-tab="sync">
+            <span class="icon">🔄</span>
+            <span>Sincronizar</span>
+        </button>
+    </div>
+    
     <!-- floating action buttons in top-left (visual placement only) -->
     <div id="floating-actions" class="floating-actions" aria-hidden="false">
         <button id="manage-lines-btn" class="manage-btn" type="button">Gestionar líneas</button>
@@ -2917,17 +3138,41 @@
                     const abastecimientos = this.getCurrentAbastecimientos();
                     const anulaciones = [];
                     
+                    console.log('📤 Enviando a Firebase - Kanban:', kanban, 'Solicitudes:', solicitudes);
+                    
                     // Guardar en localStorage
                     localStorage.setItem('json_kanban_state', JSON.stringify(kanban, null, 2));
                     localStorage.setItem('json_solicitudes', JSON.stringify(solicitudes, null, 2));
                     localStorage.setItem('json_abastecimientos', JSON.stringify(abastecimientos, null, 2));
                     localStorage.setItem('json_anulaciones', JSON.stringify(anulaciones, null, 2));
                     
-                    // Guardar en Firebase en tiempo real
-                    if(window.db && window.FirebaseSync){
-                        window.db.ref('kanban_estado').set(kanban).catch(e=>console.warn('⚠ Error en Firebase kanban:', e.message));
-                        window.db.ref('solicitudes').set(solicitudes).catch(e=>console.warn('⚠ Error en Firebase solicitudes:', e.message));
-                        window.db.ref('abastecimientos').set(abastecimientos).catch(e=>console.warn('⚠ Error en Firebase abastecimientos:', e.message));
+                    // Guardar en Firebase AHORA (sin esperar callbacks)
+                    if(window.db){
+                        window.db.ref('kanban_estado').set(kanban, (error) => {
+                            if(error) {
+                                console.error('❌ Error guardando kanban en Firebase:', error);
+                            } else {
+                                console.log('✅ Kanban guardado en Firebase:', kanban);
+                            }
+                        });
+                        
+                        window.db.ref('solicitudes').set(solicitudes, (error) => {
+                            if(error) {
+                                console.error('❌ Error guardando solicitudes en Firebase:', error);
+                            } else {
+                                console.log('✅ Solicitudes guardadas en Firebase');
+                            }
+                        });
+                        
+                        window.db.ref('abastecimientos').set(abastecimientos, (error) => {
+                            if(error) {
+                                console.error('❌ Error guardando abastecimientos en Firebase:', error);
+                            } else {
+                                console.log('✅ Abastecimientos guardados en Firebase');
+                            }
+                        });
+                    } else {
+                        console.warn('⚠ Firebase no disponible. Solo localStorage.');
                     }
                     
                     console.log('✅ Datos sincronizados en localStorage y Firebase');
@@ -3464,5 +3709,61 @@
             }catch(e){ console.error('change pass error', e); alert('Error cambiando clave.'); }
         }); }
     });
+    
+    // ===== FUNCIONALIDAD DE BARRA DE NAVEGACIÓN MÓVIL =====
+    if(window.innerWidth <= 768){
+        document.addEventListener('DOMContentLoaded', () => {
+            const navButtons = document.querySelectorAll('#mobile-bottom-nav button');
+            const panel = document.getElementById('panel-control-interno');
+            
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.getAttribute('data-tab');
+                    
+                    // Actualizar botón activo
+                    navButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Ejecutar acción según tab
+                    switch(tab){
+                        case 'kanban':
+                            // Volver a kanban (cerrar panel)
+                            if(panel) panel.style.display = 'none';
+                            document.body.style.overflow = '';
+                            window.scrollTo(0, 0);
+                            break;
+                        case 'panel':
+                            // Abrir panel de control
+                            if(panel) panel.style.display = 'block';
+                            document.body.style.overflow = 'hidden';
+                            break;
+                        case 'export':
+                            // Exportar Excel
+                            if(panel) panel.style.display = 'none';
+                            document.body.style.overflow = '';
+                            exportAllData().catch(e => {
+                                alert('Error exportando: ' + e.message);
+                                console.error(e);
+                            });
+                            break;
+                        case 'sync':
+                            // Sincronizar desde Firebase
+                            btn.textContent = '⏳ Sincronizando...';
+                            btn.disabled = true;
+                            loadAllDataFromFirebase().then(() => {
+                                alert('✅ Sincronizado');
+                                btn.textContent = '🔄\nSincronizar';
+                                btn.disabled = false;
+                            }).catch(e => {
+                                alert('Error: ' + e.message);
+                                btn.textContent = '🔄\nSincronizar';
+                                btn.disabled = false;
+                            });
+                            break;
+                    }
+                });
+            });
+        });
+    }
     </script>
 </html>
