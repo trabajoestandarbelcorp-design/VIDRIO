@@ -288,7 +288,8 @@
           /* hacer el panel un poco más pequeño y desplazado ligeramente hacia la derecha
               para que no se superponga con el botón "ABASTECER KAMBAN" */
         /* con el panel lateral eliminado, acercamos el histórico al borde izquierdo */
-        .floating-history{ position: fixed; left: 18px; top: 200px; width: 320px; z-index:115; }
+        /* Position floating history to the right of the action buttons (avoid overlapping controls) */
+        .floating-history{ position: fixed; left: calc(200px + 180px); top: 120px; width: 320px; z-index:115; }
         .floating-history .history-controls{ display:flex; gap:6px; align-items:center; justify-content:space-between; margin-bottom:6px }
         .floating-history .drag-handle{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:grab; display:inline-flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); }
         .floating-history .drag-handle:active{ cursor:grabbing }
@@ -725,12 +726,18 @@
     .manage-item input{ padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08) }
     .manage-actions{ display:flex; gap:8px; margin-top:12px }
 </style>
+<!-- Firebase SDK (compat - works without modules) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<!-- Firebase Sync Module -->
+<script src="firebase-sync.js"></script>
 </head>
 <body>
     <!-- floating action buttons in top-left (visual placement only) -->
     <div id="floating-actions" class="floating-actions" aria-hidden="false">
         <button id="manage-lines-btn" class="manage-btn" type="button">Gestionar líneas</button>
-        <button id="export-history-csv" class="export-btn" type="button">Exportar Excel</button>
+        <!-- Export moved to internal control panel -->
+        <!-- <button id="export-history-csv" class="export-btn" type="button">Exportar Excel</button> -->
     </div>
     <!-- floating history card to the right of actions (keeps same IDs so JS still works) -->
     <div id="floating-history" class="floating-history" aria-live="polite">
@@ -847,23 +854,7 @@
                 try{ window.historialModule && window.historialModule.renderizar(); }catch(e){}
                 // Also persist to Firestore if available
                 try{
-                    if(window.saveHistorial && typeof window.saveHistorial === 'function'){
-                        entries.forEach(async (ent)=>{
-                            try{
-                                // normalize field names expected by Firestore
-                                const payload = {
-                                    name: ent.name || '',
-                                    line: ent.line || ent.linea || '',
-                                    index: ent.index != null ? ent.index : null,
-                                    requestedAt: ent.requestedAt || ent.solicitud || null,
-                                    suppliedAt: ent.suppliedAt || ent.entrega || null,
-                                    duration: ent.duration != null ? ent.duration : ent.tiempo || null,
-                                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                                };
-                                await window.saveHistorial(payload);
-                            }catch(e){ console.warn('saveHistorial failed', e); }
-                        });
-                    }
+                    // Local storage only
                 }catch(e){ console.warn('addHistoryEntries -> firestore save failed', e); }
             }catch(err){ console.error('addHistoryEntries failed', err); }
         }
@@ -1145,12 +1136,16 @@
 
                     // load existing history, append new entries for each removed block
                     let newEntries = [];
-                    removedBlocks.forEach(rb => {
+                    removedBlocks.forEach(async rb => {
                         try{
                             const prevSolic = solicitudMap[rb.line] && solicitudMap[rb.line].solicitud ? parseInt(solicitudMap[rb.line].solicitud,10) : null;
                             const duration = prevSolic ? Math.max(0, now - prevSolic) : 0;
                             newEntries.push({ name: rb.name || (`${rb.line}#${rb.index}`), line: rb.line, index: rb.index, requestedAt: prevSolic || now, suppliedAt: now, duration });
-                        }catch(e){}
+                            // NUEVO: Registrar abastecimiento en Firebase
+                            if(window.FirebaseSync){
+                                await window.FirebaseSync.addAbastecimiento(rb.line, rb.name || (`${rb.line}#${rb.index}`));
+                            }
+                        }catch(e){ console.error('Error registrando abastecimiento en Firebase:', e); }
                     });
                     // persist via helper so view is refreshed
                     try{ addHistoryEntries(newEntries); }catch(e){}
@@ -1219,14 +1214,7 @@
                 status.textContent = `Línea "${name}" está inactiva. No se pueden añadir parciales.`;
                 return;
             }
-            // Prefer Firestore path when available: use columns module to add block remotely and rely on listeners
-            try{
-                if(window.columnsFB && window._colsByName && window._colsByName[lineName]){
-                    await window.columnsFB.addBlock(window._colsByName[lineName], { name: blockLabel });
-                    status.textContent = `Agregado parcial a ${name} (sincr.)`;
-                    return;
-                }
-            }catch(e){ console.warn('addPartial: firestore add failed', e); }
+            // Local storage only - Firebase removed
 
             const block = document.createElement('div');
             block.className = 'block appear';
@@ -1274,13 +1262,7 @@
             try{ saveState(); }catch(e){ /* ignore */ }
             // re-apply requested map just in case
             try{ applyRequestedToDOM(); }catch(e){}
-            // Persist to Firestore if possible
-            try{
-                const payload = { nombre: blockLabel || (lineName + '#' + String(idx)), linea: lineName, estado: 'disponible', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                if(window.saveParcial && typeof window.saveParcial === 'function'){
-                    window.saveParcial(payload).then(docRef => { console.log('Parcial sync saved id=', docRef.id); }).catch(e => console.warn('saveParcial failed', e));
-                }
-            }catch(e){ console.warn('addPartial firestore save failed', e); }
+            // Local storage only
         }
 
         async function removePartial(name){
@@ -1339,25 +1321,13 @@
                     let history = [];
                     try{ history = JSON.parse(localStorage.getItem('pk_history')||'[]'); }catch(e){ history = []; }
                     if(lastInfo){
-                            const prevSolic = solicitudMap[lastInfo.line] && solicitudMap[lastInfo.line].solicitud ? parseInt(solicitudMap[lastInfo.line].solicitud,10) : null;
-                            const duration = prevSolic ? Math.max(0, now - prevSolic) : 0;
-                            try{ addHistoryEntries([{ name: lastInfo.name || (lastInfo.line + '#' + lastInfo.index), line: lastInfo.line, index: lastInfo.index, requestedAt: prevSolic || now, suppliedAt: now, duration }]); }catch(e){}
+                        const prevSolic = solicitudMap[lastInfo.line] && solicitudMap[lastInfo.line].solicitud ? parseInt(solicitudMap[lastInfo.line].solicitud,10) : null;
+                        const duration = prevSolic ? Math.max(0, now - prevSolic) : 0;
+                        try{ addHistoryEntries([{ name: lastInfo.name || (lastInfo.line + '#' + lastInfo.index), line: lastInfo.line, index: lastInfo.index, requestedAt: prevSolic || now, suppliedAt: now, duration }]); }catch(e){}
                     }
 
-                    // Prefer Firestore delete if available
-                    try{
-                        if(window.columnsFB && window._colsByName && window._colsByName[lineName]){
-                            const removed = await window.columnsFB.removeLastBlock(window._colsByName[lineName]);
-                            // add to history from the removed document info
-                            if(removed){ try{ if(window.historialFirebase && window.historialFirebase.addEntry) window.historialFirebase.addEntry({ name: removed.name || (lineName + '#' + removed.index), line: lineName, index: removed.index, suppliedAt: Date.now() }); }catch(e){} }
-                            // re-render will be handled by listener; show success
-                            status.textContent = '✅ Parcial abastecido correctamente (sincr.)';
-                            setTimeout(()=>{ status.textContent=''; status.style.display='none'; }, 2000);
-                        }else{
-                            // fallback: actually remove the partial locally (keeps same behavior with animation)
-                            removePartial(lineName);
-                        }
-                    }catch(e){ console.warn('removePartial firestore failed', e); removePartial(lineName); }
+                    // Local removal only
+                    removePartial(lineName);
 
                     // Mostrar notificación de éxito DESPUÉS de la animación de removePartial (260ms)
                     setTimeout(()=>{
@@ -1390,7 +1360,7 @@
             const container = document.querySelector('.container');
             if(!container) return;
             container.innerHTML = '';
-            lines.forEach(line => {
+            lines.forEach((line, idx) => {
                 const col = document.createElement('div');
                 col.className = 'column';
                 if(line.active === false){
@@ -1404,24 +1374,16 @@
                 toggle.title = line.active !== false ? 'Clic para desactivar' : 'Clic para activar';
                 toggle.addEventListener('click', async (e)=>{
                     e.stopPropagation();
-                    // toggle active status in storage
                     try{
-                        // If Firestore modules are available use them
-                        if(window.columnsFB && window._colsByName && window._colsByName[line.name]){
-                            try{ await window.columnsFB.toggleColumnActive(window._colsByName[line.name], !line.active); }catch(e){ console.warn('toggleColumnActive failed', e); }
-                        }else{
-                            const raw = localStorage.getItem('pk_lines') || '[]';
-                            const stored = JSON.parse(raw);
-                            const idx = stored.findIndex(l => l.name === line.name);
-                            if(idx >= 0){
-                                stored[idx].active = !(stored[idx].active !== false);
-                                localStorage.setItem('pk_lines', JSON.stringify(stored));
-                                // apply immediately
-                                try{ if(window.applyLinesToDOM) window.applyLinesToDOM(stored); }catch(e){}
-                                window.dispatchEvent(new StorageEvent('storage', {key:'pk_lines'}));
-                            }
-                        }
-                    }catch(e){ console.error('toggle failed', e); }
+                        // flip active flag for this line
+                        lines[idx].active = !(lines[idx].active === false);
+                        // persist
+                        try{ localStorage.setItem('pk_lines', JSON.stringify(lines)); }catch(err){ console.error('failed saving pk_lines', err); }
+                        // re-render columns from updated lines
+                        try{ renderColumns(lines); }catch(err){ console.warn('re-render after toggle failed', err); }
+                        // notify other listeners/tabs
+                        try{ window.dispatchEvent(new StorageEvent('storage', {key:'pk_lines'})); }catch(e){ }
+                    }catch(err){ console.error('toggle failed', err); }
                 });
                 col.appendChild(toggle);
                 
@@ -1612,7 +1574,7 @@
                     if(!lineName) { alert('Selecciona o escribe la línea antes.'); return; }
                     // add a new partial with this name
                     addPartial(lineName, name);
-                    try{ ensureBlockDataAttributes(); rebuildBlockNamesFromDOM(); applyRequestedToDOM(); ensureTimerElements(); updateColumnTimers(); }catch(e){}
+                    try{ ensureBlockDataAttributes(); rebuildBlockNamesFromDOM(); applyRequestedToDOM(); ensureTimerElements(); }catch(e){}
                     // close modal immediately after adding
                     try{ closeModal(); }catch(err){ /* closeModal is defined below */ }
                 }
@@ -1765,267 +1727,15 @@
 
     });
     </script>
-    <!-- Firebase realtime sync (Firestore) - inicialización y listeners -->
-    <!-- SDKs: compat version to integrate easily with existing inline scripts -->
-    <!-- Firebase SDK v9 modular -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <!-- Firebase removed -->
     <script>
-    // Configuración: reemplaza estos valores por los de tu proyecto Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyDhSuWPakadOZcsTiSwy_JMfTyZ-ML4eI4",
-        authDomain: "indexvidrio.firebaseapp.com",
-        databaseURL: "https://indexvidrio-default-rtdb.firebaseio.com",
-        projectId: "indexvidrio",
-        storageBucket: "indexvidrio.firebasestorage.app",
-        messagingSenderId: "937199809438",
-        appId: "1:937199809438:web:13a7e19799fd16f08edc8f",
-        measurementId: "G-R0R2V42V1R"
-    };
-
-    // Inicializa Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-
-    // Autenticación anónima para pruebas (puedes cambiarlo por login real)
-    auth.signInAnonymously().catch(e => console.warn('Firebase anonymous auth failed', e));
-
-    // Función para guardar un parcial abastecido
-    async function saveParcial(parcial) {
-        // parcial: {nombre, linea, fecha, estado, ...}
-        return db.collection('parciales').add(parcial);
-    }
-
-    // Función para guardar historial
-    async function saveHistorial(historial) {
-        // historial: {orden, linea, fechaSolicitud, fechaEntrega, tiempo}
-        return db.collection('historial').add(historial);
-    }
-
-    // Funciones para actualizar estado de solicitud, anulación, abastecimiento, etc.
-    async function updateParcialEstado(id, estado) {
-        return db.collection('parciales').doc(id).update({estado});
-    }
-
-    // --- Listeners: se adjuntan SOLO después de autenticación para evitar permission-denied ---
-    function attachFirestoreListeners(){
-        console.log('Attaching Firestore listeners...');
-
-        db.collection('parciales').onSnapshot(snapshot => {
-            const parciales = [];
-            snapshot.forEach(doc => parciales.push({...doc.data(), id: doc.id}));
-            try{ window.renderParciales && window.renderParciales(parciales); }catch(e){ console.warn('renderParciales failed', e); }
-        }, err => { console.error('parciales snapshot error', err); });
-
-        db.collection('historial').orderBy('fechaEntrega', 'desc').limit(5).onSnapshot(snapshot => {
-            const historial = [];
-            snapshot.forEach(doc => historial.push({...doc.data(), id: doc.id}));
-            try{ window.renderRecentHistory && window.renderRecentHistory(historial); }catch(e){ console.warn('renderRecentHistory failed', e); }
-        }, err => { console.error('historial snapshot error', err); });
-
-        db.collection('solicitudes').onSnapshot(snapshot => {
-            const solicitudes = [];
-            snapshot.forEach(doc => solicitudes.push({...doc.data(), id: doc.id}));
-            try{ window.renderSolicitudes && window.renderSolicitudes(solicitudes); }catch(e){ /* optional */ }
-        }, err => { console.error('solicitudes snapshot error', err); });
-    }
-
-    // Esperar autenticación antes de conectar listeners
-    auth.onAuthStateChanged(user => {
-        if(user){
-            console.log('Firebase auth ready — uid:', user.uid);
-            attachFirestoreListeners();
-        } else {
-            console.log('No auth - signing in anonymously...');
-            auth.signInAnonymously().catch(e => console.warn('Anonymous sign-in failed', e));
-        }
-    });
-
-    // Puedes agregar más funciones según la lógica de tu app
-    // Exponer helpers para pruebas desde la consola del navegador
-    try{
-        window.saveParcial = saveParcial;
-        window.saveHistorial = saveHistorial;
-        window.testSaveParcial = async function(){
-            try{
-                const doc = await saveParcial({ nombre: 'TEST-' + Date.now(), linea: 'PKB1', estado: 'abastecido', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                console.log('Parcial guardado, id=', doc.id);
-            }catch(e){ console.error('testSaveParcial failed', e); }
-        };
-        window.testSaveHistorial = async function(){
-            try{
-                const now = Date.now();
-                const doc = await saveHistorial({ orden: 'TEST-' + now, linea: 'PKB1', fechaSolicitud: now - 5000, fechaEntrega: now, tiempo: 5, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                console.log('Historial guardado, id=', doc.id);
-            }catch(e){ console.error('testSaveHistorial failed', e); }
-        };
-    }catch(e){ console.warn('expose test helpers failed', e); }
     </script>
-
-            <!-- Modular SDK initialization: modules firebase.js + Historial.firebase.js -->
-            <script type="module">
-                import { init, getAuth } from './firebase.js';
-                import * as historialFB from './Historial.firebase.js';
-                import * as columnsFB from './columns.firebase.js';
-
-                (async ()=>{
-                    try{
-                        const cfg = window.FIREBASE_CONFIG;
-                        if(!cfg){ console.warn('window.FIREBASE_CONFIG not found — skipping modular Firebase init'); return; }
-
-                        await init(cfg);
-                        // try anonymous sign-in using modular auth if available
-                                                try{ 
-                                                        const auth = getAuth(); 
-                                                        try{ const { signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js');
-                                                                                // fallback anonymous signin to ensure rules view during tests
-                                                                                signInAnonymously(auth).catch(()=>{});
-                                                                                onAuthStateChanged(auth, user=>{ window.currentUser = user; updateAuthUI(user); });
-
-                                                                                // expose sign-in helpers for UI
-                                                                                window.signInWithGoogle = async function(){
-                                                                                    try{ const provider = new GoogleAuthProvider(); await signInWithPopup(auth, provider); }catch(e){ console.warn('Google sign-in failed', e); }
-                                                                                };
-                                                                                window.signOutFirebase = async function(){ try{ await signOut(auth); }catch(e){ console.warn('Signout failed', e); } };
-                                                                                // attach UI buttons (in case DOM already loaded)
-                                                                                try{
-                                                                                    const signinBtn = document.getElementById('btn-signin-google');
-                                                                                    const signoutBtn = document.getElementById('btn-signout');
-                                                                                    if(signinBtn) signinBtn.addEventListener('click', ()=>window.signInWithGoogle());
-                                                                                    if(signoutBtn) signoutBtn.addEventListener('click', ()=>window.signOutFirebase());
-                                                                                }catch(e){ }
-                                                        }catch(e){ console.warn('modular auth helpers import failed', e); }
-                                                        // UI update helper (local): tries to update the auth UI controls
-                                                        function updateAuthUI(user){
-                                                            try{
-                                                                const userInfo = document.getElementById('user-info');
-                                                                const signinBtn = document.getElementById('btn-signin-google');
-                                                                const signoutBtn = document.getElementById('btn-signout');
-                                                                if(!userInfo) return;
-                                                                if(user){
-                                                                    userInfo.textContent = user.email ? (user.email + ' — ' + user.uid.substring(0,6)) : ('uid:'+ user.uid);
-                                                                    if(signinBtn) signinBtn.style.display = 'none';
-                                                                    if(signoutBtn) signoutBtn.style.display = 'inline-block';
-                                                                } else {
-                                                                    userInfo.textContent = '';
-                                                                    if(signinBtn) signinBtn.style.display = 'inline-block';
-                                                                    if(signoutBtn) signoutBtn.style.display = 'none';
-                                                                }
-                                                            }catch(e){ }
-                                                        window.updateAuthUI = updateAuthUI;
-                                                        }
-                        }catch(e){}
-
-                        // expose helpers to global scope for legacy code (optional)
-                        window.historialFirebase = historialFB;
-
-                        // start a background listener and feed existing UI if present
-                        try{
-                            historialFB.listenRecent(items => {
-                                try{ console.debug('historial listener: items count', Array.isArray(items) ? items.length : typeof items); }catch(e){}
-                                if(window.renderRecentHistory) try{ window.renderRecentHistory(items); }catch(e){}
-                                if(window.historialModule && typeof window.historialModule.renderizar === 'function'){
-                                    try{ window.historialModule.setRemoteData && window.historialModule.setRemoteData(items); }catch(e){}
-                                }
-                            }, { limit: 50 });
-                        }catch(e){ console.warn('historial listener failed', e); }
-
-                        // listen to columns collection and mirror to UI
-                        try{
-                            // expose columns helpers globally for legacy code and map name -> docId
-                            window.columnsFB = columnsFB;
-                            // convenience helper to migrate localStorage data into Firestore (run from console once)
-                            window.runMigrateFromLocalStorage = async function(){ try{ await columnsFB.migrateFromLocalStorage(); alert('Migración completada (revisa Firestore)'); }catch(e){ console.error('migrate failed', e); alert('Migración fallida, revisa consola'); } };
-                            window._colsByName = {};
-                            columnsFB.listenColumns(async (cols) => {
-                                try{
-                                    // normalize to shape expected by renderColumns: {name, count, active}
-                                    const normalized = cols.map(c => ({ name: c.name, count: c.count || 0, active: c.active }));
-                                    // keep name->id map updated
-                                    window._colsByName = {};
-                                    cols.forEach(c => { if(c && c.name) window._colsByName[c.name] = c.id; });
-                                    // render
-                                    try{ window.renderColumns && window.renderColumns(normalized); }catch(e){}
-                                }catch(e){ console.warn('columns listener callback failed', e); }
-                            });
-
-                            // when blocks change, fetch fresh columns snapshot and re-render so counts stay consistent
-                            window.addEventListener('columns.blocks.update', async ()=>{
-                                try{ const cols = await columnsFB.getColumnsSnapshot(); const normalized = cols.map(c=>({ name: c.name, count: c.count || 0, active: c.active })); window.renderColumns && window.renderColumns(normalized); }catch(e){ console.warn('on blocks.update render failed', e); }
-                            });
-                        }catch(e){ console.warn('columns listener failed', e); }
-
-                        // Auto-migrate localStorage -> Firestore (one-time) if the developer confirmed.
-                        // WARNING: this writes to your Firestore DB; run only once. User confirmed migration.
-                        try{
-                            if(window.AUTO_RUN_MIGRATION === true){
-                                console.info('AUTO_RUN_MIGRATION is true — running migrateFromLocalStorage() (one-time)');
-                                try{ const res = await columnsFB.migrateFromLocalStorage(); console.info('migrateFromLocalStorage result', res); try{ if(res && res.alreadyMigrated) alert('La migración ya se había aplicado previamente — no se realizaron cambios.'); else if(res && res.migrated) alert('Migración completa: datos locales movidos a Firestore. Revisa Firebase Console.'); }catch(e){}
-                                    // disable automatic migration after first run to avoid attempts from other machines
-                                    try{ window.AUTO_RUN_MIGRATION = false; localStorage.setItem('pk_migrated_to_firestore_v1', '1'); }catch(_){ }
-                                }catch(e){ console.warn('auto migration failed', e); alert('La migración automática falló — revisa consola.'); }
-                            }
-                        }catch(e){ console.warn('auto migration launcher failed', e); }
-
-                    }catch(e){
-                        console.warn('modular firebase init failed', e);
-                    }
-                })();
-            </script>
 
             <script>
             (function(){
-        const stateDoc = db.collection('ui').doc('pk_state');
-
-        // Listener en tiempo real: cuando cambie el documento remoto, aplicamos cambios al DOM
-        stateDoc.onSnapshot(doc => {
-            if(!doc.exists) return;
-            const data = doc.data() || {};
-            try{
-                if(data.pk_lines && window.applyLinesToDOM) window.applyLinesToDOM(data.pk_lines);
-            }catch(e){ console.error('applyLinesToDOM error', e); }
-            try{
-                if(data.pk_requested){
-                    localStorage.setItem('pk_requested', JSON.stringify(data.pk_requested));
-                    if(window.applyRequestedToDOM) window.applyRequestedToDOM();
-                }
-            }catch(e){ console.error('applyRequested error', e); }
-            try{
-                if(data.pk_solicitud_salida){
-                    localStorage.setItem('pk_solicitud_salida', JSON.stringify(data.pk_solicitud_salida));
-                    if(window.ensureTimerElements) window.ensureTimerElements();
-                    if(window.updateColumnTimers) window.updateColumnTimers();
-                    if(window.updateSolicitudDurationsDisplay) window.updateSolicitudDurationsDisplay();
-                }
-            }catch(e){ console.error('applySolicitud error', e); }
-        }, err => console.error('stateDoc snapshot error', err));
-
-        // Debounced save to avoid escrituras masivas
-        let _saveTimeout = null;
-        function saveStateToRemoteDebounced(state){
-            if(_saveTimeout) clearTimeout(_saveTimeout);
-            _saveTimeout = setTimeout(()=>{
-                try{ stateDoc.set(state, { merge: true }).catch(e=>console.error('remote set failed', e)); }catch(e){ console.error(e); }
-            }, 420);
-        }
-
-        // Exponer helper global para guardar el estado actual en remoto
-        window.saveStateToRemote = function(){
-            try{
-                const state = {
-                    pk_lines: window.getStateFromDOM ? window.getStateFromDOM() : JSON.parse(localStorage.getItem('pk_lines')||'[]'),
-                    pk_requested: JSON.parse(localStorage.getItem('pk_requested')||'{}'),
-                    pk_solicitud_salida: JSON.parse(localStorage.getItem('pk_solicitud_salida')||'{}')
-                };
-                saveStateToRemoteDebounced(state);
-            }catch(e){ console.error('saveStateToRemote wrapper failed', e); }
-        };
-
-        // Hookear funciones locales para que también persistan al remoto
+        // Firebase removed - Local storage only
+        console.log('Local storage mode enabled');
         try{
-            const originalSave = window.saveState;
             window.saveState = function(){
                 try{ if(typeof originalSave === 'function') originalSave(); }catch(e){ console.warn('original saveState failed', e); }
                 try{ window.saveStateToRemote(); }catch(e){ console.warn('saveStateToRemote failed', e); }
@@ -2040,7 +1750,7 @@
             };
         }catch(e){ console.warn('hook saveRequestedMap failed', e); }
 
-        console.log('Firebase realtime sync initialized (Firestore).');
+        console.log('App initialized (Firebase removed).');
     })();
     </script>
 
@@ -2104,40 +1814,7 @@
         // expose globally for listeners
         window.renderRecentHistory = renderRecentHistory;
 
-        // test helper so you can add a quick history entry from console
-        window.testAddHistory = async function(){
-            try{
-                // ensure module is available; try dynamic import as fallback
-                if(!window.historialFirebase){
-                    try{
-                        const mod = await import('./Historial.firebase.js');
-                        window.historialFirebase = mod;
-                    }catch(e){
-                        console.warn('dynamic import Historial.firebase.js failed', e);
-                        // attempt lowercase name fallback
-                        try{ const mod2 = await import('./historial.firebase.js'); window.historialFirebase = mod2; }catch(err){ console.warn('dynamic import historial.firebase.js failed', err); }
-                    }
-                }
-
-                if(window.historialFirebase && window.historialFirebase.addEntry){
-                    const id = await window.historialFirebase.addEntry({ orderId: 'TEST-' + Date.now(), action:'test', line: 'MANUAL' });
-                    console.info('test history created (module)', id);
-                    return id;
-                }
-
-                // Fallback: use compat SDK global 'db' if available (compat script loaded earlier)
-                if(typeof db !== 'undefined' && db && db.collection){
-                    try{
-                        const payload = { orderId: 'TEST-' + Date.now(), action:'test', line: 'MANUAL', ts: new Date() };
-                        const docRef = await db.collection('historial').add(payload);
-                        console.info('test history created (compat db) id=', docRef.id);
-                        return docRef.id;
-                    }catch(e){ console.warn('compat db write failed', e); throw e; }
-                }
-
-                throw new Error('historial module not available after dynamic import and no compat db fallback');
-            }catch(e){ console.warn('testAddHistory failed', e); throw e; }
-        };
+        // test helper removed (Firebase dependency)
 
         // if page doesn't include a full historialModule, provide a small fallback implementation
         if(!window.historialModule){
@@ -2314,9 +1991,10 @@
                 st = parseInt(el.style.top||el.getBoundingClientRect().top||0,10);
                 pid = e.pointerId||null;
                 try{ if(pid && e.target && e.target.setPointerCapture) e.target.setPointerCapture(pid); }catch(e){}
+
                 document.addEventListener('pointermove', onMove);
                 document.addEventListener('pointerup', endDrag);
-                document.addEventListener('touchmove', onMove, { passive:false });
+                document.addEventListener('touchmove', onMove, { passive: false });
                 document.addEventListener('touchend', endDrag);
             }
             if(handle){
@@ -2336,14 +2014,32 @@
         window.updateSolicitudDurationsDisplay = updateSolicitudDurationsDisplay;
     })();
     </script>
-    <!-- Debug module removed -->
-    <!-- Monitor module (monitorea cambios en localStorage en consola) -->
-        <!-- load Historial helpers as a top-level module so legacy code can rely on window.historialFirebase
-            (helps when the dynamic import path would otherwise run — still requires serving over http://) -->
-        <script type="module" src="./Historial.firebase.js"></script>
-        <script src="monitor.js"></script>
+
+    <!-- Monitor y Historial -->
+    <!-- <script src="monitor.js"></script> -->
     <!-- Historial module (gestiona y muestra el historial de órdenes) -->
     <script src="historial.js"></script>
+        <script>
+            // Mostrar panel de control interno en vez de abrir nueva pestaña
+            document.addEventListener('DOMContentLoaded', function(){
+                const btn = document.getElementById('btn-panel-control');
+                if(btn){
+                    btn.addEventListener('click', (ev)=>{
+                        ev.preventDefault && ev.preventDefault();
+                        const panel = document.getElementById('panel-control-interno');
+                        if(panel){
+                            panel.style.display = 'block';
+                            document.body.style.overflow = 'hidden';
+                            // render content
+                            if(typeof renderPanelContent === 'function') renderPanelContent();
+                        } else {
+                            // fallback: open existing page if internal panel not present
+                            window.open('panel_control.html','_blank');
+                        }
+                    });
+                }
+            });
+        </script>
     <!-- LAYOUT: Botones arriba, búsqueda/gestionar abajo-izq, líneas derecha -->
     <div class="main-container">
         <!-- Fila superior: BOTONES -->
@@ -2352,6 +2048,8 @@
             <button id="btn-salida" class="color-box green" type="button" aria-label="Abastecer AB">ABASTECER<br>AB</button>
             <button id="btn-anular-solicitud" class="color-box red" type="button" aria-label="Anular solicitud" style="background:linear-gradient(90deg,#ff6b6b,#ff5252);color:white;">ANULAR<br>SOLICITUD</button>
             <button id="btn-solicitar" class="color-box orange" type="button" aria-label="Solicitar parciales">SOLICITAR<br>PARCIALES</button>
+            <button id="btn-panel-control" class="color-box purple" type="button" aria-label="Panel de control" style="background:linear-gradient(90deg,#7c3aed,#6d28d9);color:white;">PANEL<br>DE CONTROL</button>
+            
             <!-- top-info compacta: fecha y resumen de tiempos (una línea) -->
             <div id="top-info" class="top-info top-info-compact" aria-live="polite" style="display:none !important;visibility:hidden">
                 <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%">
@@ -2520,8 +2218,20 @@
         function attachExportButtons(){
             const btnCsv = document.getElementById('export-history-csv');
             const btnJson = document.getElementById('export-history-json');
+            const btnJsonStorage = document.getElementById('export-json-btn');
             if(btnCsv){ btnCsv.addEventListener('click', ()=>{ if(window.historialModule && window.historialModule.exportCSV) window.historialModule.exportCSV(); else alert('Módulo historial no disponible aún. Intenta de nuevo.'); }); }
             if(btnJson){ btnJson.addEventListener('click', ()=>{ if(window.historialModule && window.historialModule.exportar) window.historialModule.exportar(); else alert('Módulo historial no disponible aún. Intenta de nuevo.'); }); }
+            if(btnJsonStorage){
+                btnJsonStorage.addEventListener('click', ()=>{
+                    if(window.JSONStorage){
+                        window.JSONStorage.saveAll();
+                        alert('✅ Datos guardados. Descargando archivos JSON...');
+                        setTimeout(()=>{ window.JSONStorage.downloadAllJSONs(); }, 500);
+                    } else {
+                        alert('Sistema JSON no disponible. Recarga la página.');
+                    }
+                });
+            }
         }
         // intentar conectar inmediatamente y también tras carga completa
         attachExportButtons();
@@ -2710,7 +2420,6 @@
                 document.removeEventListener('pointerup', onPointerUp);
                 document.removeEventListener('touchmove', onPointerMove);
                 document.removeEventListener('touchend', onPointerUp);
-                try{ if(pointerId && e.target && e.target.releasePointerCapture) e.target.releasePointerCapture(pointerId); }catch(e){}
                 pointerId = null;
             }
 
@@ -2754,7 +2463,6 @@
                 try{ const rect = el.getBoundingClientRect(); const pad=8; const w=el.offsetWidth||300; const h=el.offsetHeight||150; let l = rect.left; let t = rect.top; if(l + w > window.innerWidth - pad) l = Math.max(pad, window.innerWidth - w - pad); if(t + h > window.innerHeight - pad) t = Math.max(pad, window.innerHeight - h - pad); el.style.left = l + 'px'; el.style.top = t + 'px'; }catch(e){}
             });
         })();
-    })();
     </script>
 
     <!-- Gestión: lógica embebida que reemplaza manage-lines.html -->
@@ -2878,6 +2586,7 @@
                         let lineName = s.getAttribute('data-line') || ((s.closest('.column')||{}).querySelector('.column-header')||{textContent:''}).textContent;
                         lineName = (lineName||'').trim();
                         const idx = parseInt(s.getAttribute('data-index')||'-1',10);
+                        const blockText = (s.textContent || s.innerText || '').trim(); // get the order number
                         if(!lineName || !Number.isFinite(idx)){
                             // toggle visual only
                             if(s.classList.contains('requested')){ s.classList.remove('requested'); removed++; }
@@ -2906,6 +2615,13 @@
                             solicitudMap[key].solicitud = Date.now();
                             delete solicitudMap[key].salida; // clear salida while new request open
                             try{ console.log('saved solicitud for', key, solicitudMap[key].solicitud); }catch(e){}
+                            
+                            // NUEVO: Guardar en Firebase
+                            try{
+                                if(window.FirebaseSync){
+                                    window.FirebaseSync.addSolicitud(lineName, blockText).catch(e=>console.warn('Error en solicitud Firebase:', e));
+                                }
+                            }catch(e){ console.warn('Error agregando solicitud:', e); }
                         }
 
                         if(arr.length > 0) reqMap[key] = Array.from(new Set(arr)).sort((a,b)=>a-b); else delete reqMap[key];
@@ -2944,7 +2660,7 @@
                 const password = prompt('Ingresa la clave para anular solicitud:', '');
                 if(password === null) return; // user cancelled
                 
-                const correctPassword = 'AB135';
+                const correctPassword = localStorage.getItem('pk_admin_password_anular') || 'AB135';
                 if(password !== correctPassword){
                     alert('❌ Clave incorrecta. La solicitud no ha sido anulada.');
                     return;
@@ -2963,6 +2679,7 @@
                         let lineName = s.getAttribute('data-line') || ((s.closest('.column')||{}).querySelector('.column-header')||{textContent:''}).textContent;
                         lineName = (lineName||'').trim();
                         const idx = parseInt(s.getAttribute('data-index')||'-1',10);
+                        const blockText = (s.textContent || s.innerText || '').trim(); // get the order number
                         if(!lineName || !Number.isFinite(idx)) return;
                         
                         const key = lineName;
@@ -2982,6 +2699,25 @@
                         if(arr.length === 0){
                             delete solicitudMap[key];
                         }
+                        
+                        // NUEVO: Agregar inmediatamente a anulaciones.json
+                        try{
+                            const now = new Date();
+                            const newAnulacion = {
+                                linea: lineName,
+                                orden_produccion: blockText,
+                                fecha_anulacion: now.toLocaleDateString('es-ES'),
+                                hora_anulacion: now.toLocaleTimeString('es-ES'),
+                                timestamp: now.toISOString()
+                            };
+                            
+                            // Guardar en Firebase
+                            try{
+                                if(window.FirebaseSync){
+                                    window.FirebaseSync.addAnulacion(lineName, blockText).catch(e=>console.warn('Error en anulación Firebase:', e));
+                                }
+                            }catch(e){ console.warn('Error registrando anulación:', e); }
+                        }catch(e){ console.warn('Error registrando anulación:', e); }
                     }catch(err){ console.error('anular loop error', err); }
                 });
                 
@@ -2997,6 +2733,54 @@
                     status.textContent = `✅ ${canceled} solicitud(es) anulada(s) correctamente.`;
                     setTimeout(()=>{ status.textContent = ''; status.style.display = 'none'; }, 3000);
                 }catch(e){}
+            });
+        })();
+
+        // manejar botón "Abastecer AB" (procesa parciales solicitados y los registra en abastecimientos.json)
+        (function(){
+            const btnSalida = document.getElementById('btn-salida');
+            if(!btnSalida) return;
+            btnSalida.addEventListener('click', async ()=>{
+                const requested = Array.from(document.querySelectorAll('.block.requested'));
+                if(requested.length === 0){
+                    try{ status.textContent = 'No hay parciales solicitados para abastecer.'; }catch(e){}
+                    return;
+                }
+                if(!confirm(`¿Abastecer ${requested.length} parcial(es) en AB?`)) return;
+
+                // procesar cada solicitud: enviar a servidor y remover del DOM
+                for(const s of requested){
+                    try{
+                        try{ ensureBlockDataAttributes(); }catch(e){}
+                        let lineName = s.getAttribute('data-line') || ((s.closest('.column')||{}).querySelector('.column-header')||{textContent:''}).textContent;
+                        lineName = (lineName||'').trim();
+                        const blockText = (s.textContent || s.innerText || '').trim();
+                        if(!lineName || !blockText) continue;
+
+                        // enviar al Firebase
+                        if(window.FirebaseSync){
+                            await window.FirebaseSync.addAbastecimiento(lineName, blockText).catch(e=>console.warn('Error en abastecimiento Firebase:', e));
+                        }
+
+                        // visual: eliminar bloque (animación)
+                        s.classList.remove('requested');
+                        s.classList.add('removing');
+                        setTimeout(()=>{ try{ s.remove(); }catch(e){} }, 260);
+                    }catch(e){ console.error('Error procesando abastecimiento', e); }
+                }
+
+                // actualizar estado de kanban en Firebase
+                try{
+                    const state = (window.DataSync && window.DataSync.getCurrentKanbanState) ? window.DataSync.getCurrentKanbanState() : {};
+                    if(window.FirebaseSync){
+                        window.FirebaseSync.updateKanbanState(state).catch(()=>{});
+                    }
+                }catch(e){}
+
+                // refrescar timers y UI
+                try{ ensureTimerElements(); updateColumnTimers(); window.updateSolicitudDurationsDisplay && window.updateSolicitudDurationsDisplay(); }catch(e){}
+                try{ status.textContent = `✅ ${requested.length} parcial(es) abastecido(s).`; setTimeout(()=>status.textContent='',3000); }catch(e){}
+           
             });
         })();
 
@@ -3029,5 +2813,423 @@
         }
     })();
     </script>
-</body>
+
+    <!-- Sistema de almacenamiento JSON sin servidor (solo localStorage + descarga manual) -->
+    <script>
+    (function(){
+        // Sistema completo de sincronización sin necesidad de servidor Node.js
+        const DataSync = {
+            // Obtener estado actual del kanban desde el DOM
+            getCurrentKanbanState() {
+                const state = {};
+                const cols = document.querySelectorAll('.container .column');
+                cols.forEach(col => {
+                    const header = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                    if(header){
+                        const blocks = [];
+                        col.querySelectorAll('.block').forEach(b => {
+                            const blockText = (b.textContent || b.innerText || '').trim();
+                            blocks.push(blockText);
+                        });
+                        state[header] = blocks;
+                    }
+                });
+                return state;
+            },
+
+            // Obtener solicitudes desde historial
+            getCurrentSolicitudes() {
+                const solicitudes = [];
+                let history = [];
+                try { history = JSON.parse(localStorage.getItem('pk_history')||'[]'); } catch(e){}
+                
+                const solicitudMap = {};
+                history.forEach(entry => {
+                    if(entry && entry.line && entry.requestedAt){
+                        if(!solicitudMap[entry.name]){
+                            solicitudMap[entry.name] = {
+                                linea: entry.line,
+                                nombre: entry.name,
+                                requestedAt: entry.requestedAt
+                            };
+                        }
+                    }
+                });
+                
+                Object.values(solicitudMap).forEach(item => {
+                    if(item.requestedAt){
+                        const date = new Date(parseInt(item.requestedAt, 10));
+                        solicitudes.push({
+                            linea: item.linea,
+                            orden_produccion: item.nombre,
+                            fecha_solicitud: date.toLocaleDateString('es-ES'),
+                            hora_solicitud: date.toLocaleTimeString('es-ES'),
+                            timestamp: date.toISOString()
+                        });
+                    }
+                });
+                return solicitudes;
+            },
+
+            // Obtener abastecimientos desde historial
+            getCurrentAbastecimientos() {
+                const abastecimientos = [];
+                let history = [];
+                try { history = JSON.parse(localStorage.getItem('pk_history')||'[]'); } catch(e){}
+                
+                history.forEach(entry => {
+                    if(entry && entry.suppliedAt && entry.line && entry.name){
+                        const date = new Date(parseInt(entry.suppliedAt, 10));
+                        abastecimientos.push({
+                            linea: entry.line,
+                            orden_produccion: entry.name,
+                            fecha_abastecimiento: date.toLocaleDateString('es-ES'),
+                            hora_abastecimiento: date.toLocaleTimeString('es-ES'),
+                            timestamp: date.toISOString()
+                        });
+                    }
+                });
+                return abastecimientos;
+            },
+
+            // Guardar datos en localStorage (sincronización automática)
+            syncAll() {
+                try {
+                    const kanban = this.getCurrentKanbanState();
+                    const solicitudes = this.getCurrentSolicitudes();
+                    const abastecimientos = this.getCurrentAbastecimientos();
+                    const anulaciones = [];
+                    
+                    localStorage.setItem('json_kanban_state', JSON.stringify(kanban, null, 2));
+                    localStorage.setItem('json_solicitudes', JSON.stringify(solicitudes, null, 2));
+                    localStorage.setItem('json_abastecimientos', JSON.stringify(abastecimientos, null, 2));
+                    localStorage.setItem('json_anulaciones', JSON.stringify(anulaciones, null, 2));
+                    
+                    console.log('✅ Datos sincronizados en localStorage');
+                } catch(e) {
+                    console.error('❌ Error sincronizando:', e);
+                }
+            },
+
+            // Descargar un JSON como archivo
+            downloadJSON(key, filename) {
+                try {
+                    const data = localStorage.getItem(key);
+                    if(!data){
+                        alert(`❌ No hay datos para: ${filename}`);
+                        return;
+                    }
+                    const blob = new Blob([data], { type: 'application/json; charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    console.log(`✅ Descargando: ${filename}`);
+                } catch(e) {
+                    console.error('❌ Error descargando:', e);
+                }
+            },
+
+            // Descargar todos los JSONs
+            downloadAllJSONs() {
+                console.log('📥 Iniciando descarga de archivos JSON...');
+                this.downloadJSON('json_kanban_state', 'kanban_estado.json');
+                setTimeout(()=>this.downloadJSON('json_solicitudes', 'solicitudes.json'), 300);
+                setTimeout(()=>this.downloadJSON('json_abastecimientos', 'abastecimientos.json'), 600);
+                setTimeout(()=>this.downloadJSON('json_anulaciones', 'anulaciones.json'), 900);
+            }
+        };
+
+        // Exponer globalmente
+        window.DataSync = DataSync;
+
+        // Sincronizar cada 5 segundos a Firebase (no localStorage)
+        try{
+            // Send data to Firebase every 5 seconds for automatic syncing
+            const sendToFirebase = () => {
+                try{
+                    // Enviar sólo el estado del kanban a Firebase cada 5s
+                    try{
+                        const state = DataSync.getCurrentKanbanState();
+                        if(window.FirebaseSync){
+                            window.FirebaseSync.updateKanbanState(state).catch(()=>{});
+                        }
+                    }catch(e){ console.warn('Error enviando kanban state a Firebase', e); }
+                }catch(e){ console.warn('Error sending to Firebase:', e); }
+            };
+
+            // Sincronizar a Firebase cada 5 segundos (no localStorage)
+            setInterval(() => {
+                sendToFirebase();
+            }, 5000);
+
+            // debounced sync for rapid DOM changes
+            let _syncDebounceTimer = null;
+            const scheduleDebouncedSync = (ms = 700) => {
+                clearTimeout(_syncDebounceTimer);
+                _syncDebounceTimer = setTimeout(()=>{
+                    // Envia cambios rápidos a Firebase
+                    sendToFirebase();
+                }, ms);
+            };
+
+            // Observe DOM changes under the main container to trigger sync
+            const container = document.querySelector('.container') || document.body;
+            try{
+                const observer = new MutationObserver(mutations => {
+                    // if there are many mutations, debounce into a single sync
+                    scheduleDebouncedSync(700);
+                });
+                observer.observe(container, { childList: true, subtree: true, attributes: true, characterData: true });
+            }catch(e){ console.warn('MutationObserver not available', e); }
+
+            // Also listen to clicks that likely change state (safety net)
+            document.addEventListener('click', (ev)=>{
+                const t = ev.target;
+                if(t && (t.closest && (t.closest('.block') || t.matches('button') || t.matches('input') || t.matches('select')))){
+                    scheduleDebouncedSync(800);
+                    // Fire and forget to Firebase
+                    try { sendToFirebase(); } catch(e) {}
+                }
+            }, {capture:true});
+
+            // Ensure final sync to Firebase before unload
+            window.addEventListener('beforeunload', () => {
+                try { sendToFirebase(); } catch(e) {}
+            });
+
+            console.log('✅ Sistema de sincronización con Firebase listo');
+            console.log('📍 Los datos se guardan en Firebase Realtime Database automáticamente cada 5 segundos');
+            console.log('🔥 Monitorea en tiempo real en: https://console.firebase.google.com');
+        }catch(e){ console.error('Error configuring autosync', e); }
+    })();
+    </script>
+
+    <!-- Limpieza segura al iniciar: elimina bloques estáticos si no hay datos persistentes -->
+    <script>
+    (function(){
+        try{
+            const requiredKeys = ['json_kanban_state','pk_lines','pk_history'];
+            const hasData = requiredKeys.some(k=>{
+                const v = localStorage.getItem(k);
+                if(!v) return false;
+                try{
+                    const s = v.toString().trim();
+                    if(s === '' || s === '{}' || s === '[]') return false;
+                }catch(e){ }
+                return true;
+            });
+
+            if(!hasData){
+                const blocks = document.querySelectorAll('.block');
+                if(blocks.length > 0){
+                    console.warn('Startup cleanup: removing', blocks.length, 'static .block elements because no persisted data found.');
+                    blocks.forEach(b=>b.remove());
+                    try{ if(window.applyLinesToDOM) window.applyLinesToDOM([]); }catch(e){}
+
+                    // También eliminar claves residuales que pueden causar repoblado
+                    ['pk_lines','pk_block_names','pk_requested','pk_solicitud_salida','pk_empty_since','json_kanban_state','json_solicitudes','json_abastecimientos','json_anulaciones'].forEach(k=>localStorage.removeItem(k));
+                    console.log('Startup cleanup completed.');
+                }
+            }
+        }catch(e){ console.error('Startup cleanup failed', e); }
+    })();
+    </script>
+        <!-- Panel de Control Interno (oculto por defecto) -->
+        <div id="panel-control-interno" style="display:none; position:fixed; inset:0; background:#ffffff; z-index:9999;">
+            <style id="panel-styles">
+                #panel-control-interno { font-family: Inter, system-ui, Arial, sans-serif; }
+                #panel-control-interno .panel-shell { width:100%; height:100vh; margin:0; background: linear-gradient(180deg,#fbfdff,#ffffff); border-radius:0; padding:28px 32px; box-shadow:none; position:relative; display:flex; flex-direction:column; }
+                #panel-control-interno h2 { font-size:28px; color:#4b2991; margin:6px 0 18px 0; font-weight:800; }
+                #panel-control-interno .panel-actions { display:flex; gap:14px; justify-content:center; margin:8px 0 18px 0; flex-wrap:wrap; }
+                #panel-control-interno .panel-actions button { padding:12px 20px; font-size:16px; border-radius:10px; box-shadow:0 8px 20px rgba(12,20,30,0.06); border:0; color:white; font-weight:700; cursor:pointer; transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease; }
+                #panel-control-interno .panel-actions button:hover { transform: translateY(-3px); box-shadow:0 18px 36px rgba(12,20,30,0.12); }
+                #btn-cerrar-panel { position:absolute; left:14px; top:14px; background:#fff; border:1px solid #e6e6e9; padding:8px 12px; border-radius:8px; color:#333; }
+                #panel-export-excel { background:linear-gradient(90deg,#f59e0b,#f97316); }
+                #panel-refresh-db { background:#6b7280; }
+                #panel-reset-firebase { background:#ef4444; }
+                #panel-change-pass { background:#10b981; }
+                #panel-control-interno .change-pass-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:12px; }
+                #panel-control-interno input#panel-new-pass { padding:10px; border-radius:8px; border:1px solid #e5e7eb; font-size:15px; min-width:180px; }
+                #panel-control-interno #panel-content { margin-top:10px; flex:1; overflow:auto; }
+                #panel-control-interno #panel-historial-list { max-height:680px; overflow:auto; background:linear-gradient(180deg,#ffffff,#fbfbff); padding:14px; border-radius:10px; border:1px solid #f0f0f5; }
+                #panel-control-interno #panel-historial-list .hist-item { padding:12px; border-bottom:1px solid #f3f3f6; font-size:15px; }
+                #panel-control-interno #panel-historial-list .hist-item strong { font-size:16px; color:#111827; }
+            </style>
+            <div class="panel-shell">
+                <button id="btn-cerrar-panel">Volver</button>
+                <h2 style="text-align:center;">Panel de Control</h2>
+                <div class="panel-actions">
+                    <button id="panel-export-excel">Exportar Excel</button>
+                    <button id="panel-refresh-db">Refrescar Datos</button>
+                    <button id="panel-reset-firebase">Reiniciar Firebase</button>
+                </div>
+                <div class="change-pass-row">
+                    <label for="panel-new-pass" style="font-weight:700;">Cambiar clave Anular:</label>
+                    <input id="panel-new-pass" type="password" placeholder="Nueva clave" />
+                    <button id="panel-change-pass">Cambiar</button>
+                </div>
+                <div id="panel-content">
+                    <h3 style="margin-left:8px;">Historial (últimos 20)</h3>
+                    <div id="panel-historial-list"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+<!-- Removed duplicate closing html tag -->
+    <script>
+    // Funciones utilitarias para exportar datos (JSON + CSV)
+    async function exportAllData(){
+        try{
+            const paths = ['historial','abastecimientos','solicitudes','anulaciones','kanban_estado'];
+            const result = {};
+            if(window.db){
+                for(const p of paths){
+                    try{
+                        const snap = await window.db.ref(p).once('value');
+                        result[p] = snap.val() || {};
+                    }catch(e){ console.warn('Error leyendo',p,e); result[p] = {}; }
+                }
+            } else {
+                // fallback: intentar leer desde módulos locales
+                result.historial = (window.historialModule && window.historialModule.obtenerHistorial && window.historialModule.obtenerHistorial()) || {};
+                // otros pueden estar en localStorage
+                try{ result.solicitudes = JSON.parse(localStorage.getItem('json_solicitudes')||'{}'); }catch(e){ result.solicitudes = {}; }
+                try{ result.abastecimientos = JSON.parse(localStorage.getItem('json_abastecimientos')||'{}'); }catch(e){ result.abastecimientos = {}; }
+                try{ result.anulaciones = JSON.parse(localStorage.getItem('json_anulaciones')||'{}'); }catch(e){ result.anulaciones = {}; }
+                try{ result.kanban_estado = JSON.parse(localStorage.getItem('json_kanban_state')||'{}'); }catch(e){ result.kanban_estado = {}; }
+            }
+
+            // Descargar JSON completo
+            const now = new Date().toISOString().replace(/[:.]/g,'-');
+            const jsonBlob = new Blob([JSON.stringify(result,null,2)], {type:'application/json'});
+            downloadBlob(`backup_vidrio_${now}.json`, jsonBlob);
+
+            // Descargar CSV por colección
+            for(const key of Object.keys(result)){
+                const obj = result[key] || {};
+                const arr = Array.isArray(obj) ? obj : Object.keys(obj).map(id => Object.assign({id}, obj[id]));
+                if(arr.length === 0) continue;
+                const csv = objArrayToCSV(arr);
+                const blob = new Blob([csv], {type:'text/csv'});
+                downloadBlob(`backup_${key}_${now}.csv`, blob);
+            }
+            alert('✅ Exportación completada. Se descargaron JSON y CSVs.');
+        }catch(e){ console.error('exportAllData error', e); alert('Error exportando datos. Revisa la consola.'); }
+    }
+
+    function downloadBlob(filename, blob){
+        try{
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(()=>URL.revokeObjectURL(url), 2000);
+        }catch(e){ console.error('downloadBlob error', e); }
+    }
+
+    function objArrayToCSV(arr){
+        const headerSet = new Set();
+        arr.forEach(o=>{ Object.keys(o||{}).forEach(k=>headerSet.add(k)); });
+        const headers = Array.from(headerSet);
+        const lines = [headers.join(',')];
+        for(const o of arr){
+            const row = headers.map(h=>{
+                let v = o[h] !== undefined ? o[h] : '';
+                if(v === null) v = '';
+                v = String(v).replace(/"/g, '\\\"\\\"');
+                if(v.indexOf(',')!==-1 || v.indexOf('\n')!==-1) v = '\\\"'+v+'\\\"';
+                return v;
+            }).join(',');
+            lines.push(row);
+        }
+        return lines.join('\n');
+    }
+
+    // Panel interno: lógica de render y botones
+    function renderPanelContent(){
+        // render historial from Firebase (abastecimientos/historial)
+        const listEl = document.getElementById('panel-historial-list');
+        if(!listEl) return;
+        listEl.innerHTML = '<em>Cargando...</em>';
+        // try realtime DB first
+        try{
+            if(window.FirebaseSync && window.db){
+                window.db.ref('historial').limitToLast(20).orderByKey().once('value', snap=>{
+                    const data = snap.val() || {};
+                    const keys = Object.keys(data).sort().reverse();
+                    if(keys.length === 0){ listEl.innerHTML = '<em>No hay registros.</em>'; return; }
+                    listEl.innerHTML = keys.map(k=>{
+                        const it = data[k];
+                        return `<div class="hist-item"><strong>${it.name||it.parcial||'—'}</strong><div style="font-size:12px;color:#666">Linea: ${it.line||it.pk||'—'} — ${it.fecha||''} ${it.hora||''}</div></div>`;
+                    }).join('');
+                });
+            } else {
+                // fallback: try historialModule if present
+                if(window.historialModule && window.historialModule.obtenerHistorial){
+                    const arr = window.historialModule.obtenerHistorial() || [];
+                    if(arr.length === 0) { listEl.innerHTML = '<em>No hay registros.</em>'; return; }
+                    listEl.innerHTML = arr.slice(0,20).map(it=>`<div class="hist-item"><strong>${it.name||it.parcial||'—'}</strong><div style="font-size:12px;color:#666">Linea: ${it.line||it.pk||'—'} — ${it.fecha_solicitud||it.fecha||''} ${it.hora_solicitud||it.hora||''}</div></div>`).join('');
+                } else {
+                    listEl.innerHTML = '<em>Historial no disponible.</em>';
+                }
+            }
+        }catch(e){ listEl.innerHTML = '<em>Error cargando historial.</em>'; console.error(e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+        const panel = document.getElementById('panel-control-interno');
+        const btnCerrar = document.getElementById('btn-cerrar-panel');
+        const btnExport = document.getElementById('panel-export-excel');
+        const btnRefresh = document.getElementById('panel-refresh-db');
+        const btnReset = document.getElementById('panel-reset-firebase');
+        const btnChangePass = document.getElementById('panel-change-pass');
+        const inputNewPass = document.getElementById('panel-new-pass');
+        if(btnCerrar) btnCerrar.addEventListener('click', ()=>{ panel.style.display='none'; document.body.style.overflow=''; try{ window.scrollTo(0,0); }catch(e){} });
+        if(btnExport){ btnExport.addEventListener('click', async ()=>{ try{ await exportAllData(); }catch(e){ console.warn('export button fallback', e); if(window.historialModule && window.historialModule.exportar) window.historialModule.exportar(); else alert('Función exportar no disponible.'); } }); }
+        if(btnRefresh){ btnRefresh.addEventListener('click', ()=>{ renderPanelContent(); }); }
+        if(btnReset){ btnReset.addEventListener('click', async ()=>{
+            try{
+                // Preguntar si desea exportar antes
+                const wantExport = confirm('¿Deseas exportar los datos antes de reiniciar? Aceptar=Exportar ahora, Cancelar=No y continuar.');
+                if(wantExport){ await exportAllData(); }
+                else { const cont = confirm('¿Deseas continuar sin exportar? Aceptar=Continuar, Cancelar=Cancelar reinicio'); if(!cont){ alert('Reinicio cancelado.'); return; } }
+
+                const confirmText = prompt("Escribe 'RESET' para confirmar el reinicio de datos:", '');
+                if(confirmText !== 'RESET'){ alert('Reinicio cancelado.'); return; }
+                const adminPass = prompt('Ingresa la clave admin para confirmar reinicio:', '');
+                const stored = localStorage.getItem('pk_admin_password_anular') || 'AB135';
+                if(adminPass !== stored){ alert('Clave admin incorrecta. Reinicio cancelado.'); return; }
+                if(!window.db){ alert('Firebase no está disponible. No se pudo reiniciar.'); return; }
+                const paths = ['historial','abastecimientos','solicitudes','anulaciones'];
+                for(const p of paths){
+                    try{ await window.db.ref(p).remove(); }catch(e){ console.warn('Error borrando',p,e); }
+                }
+                // limpiar también claves locales relacionadas
+                ['pk_solicitud_salida','pk_requested','json_kanban_state','json_solicitudes','json_abastecimientos','json_anulaciones','pk_lines','pk_block_names'].forEach(k=>localStorage.removeItem(k));
+                alert('✅ Reinicio de Firebase completado.');
+                renderPanelContent();
+            }catch(e){ console.error('reset error', e); alert('Error durante reinicio. Revisa la consola.'); }
+        }); }
+        if(btnChangePass){ btnChangePass.addEventListener('click', ()=>{
+            try{
+                const newPass = (inputNewPass && inputNewPass.value || '').trim();
+                if(!newPass){ alert('Ingrese una nueva clave válida.'); return; }
+                const current = prompt('Ingresa la clave actual para confirmar cambio:', '');
+                const stored = localStorage.getItem('pk_admin_password_anular') || 'AB135';
+                if(current !== stored){ alert('Clave actual incorrecta. Cambio cancelado.'); return; }
+                localStorage.setItem('pk_admin_password_anular', newPass);
+                inputNewPass.value = '';
+                alert('✅ Clave para anular solicitudes actualizada.');
+            }catch(e){ console.error('change pass error', e); alert('Error cambiando clave.'); }
+        }); }
+    });
+    </script>
 </html>
