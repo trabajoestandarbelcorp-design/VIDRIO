@@ -289,7 +289,7 @@
               para que no se superponga con el botón "ABASTECER KAMBAN" */
         /* con el panel lateral eliminado, acercamos el histórico al borde izquierdo */
         /* Position floating history to the right of the action buttons (avoid overlapping controls) */
-        .floating-history{ position: fixed; left: calc(200px + 180px); top: 120px; width: 320px; z-index:115; }
+        .floating-history{ position: fixed !important; left: 440px !important; bottom: 40px !important; width: 300px; z-index:115; }
         .floating-history .history-controls{ display:flex; gap:6px; align-items:center; justify-content:space-between; margin-bottom:6px }
         .floating-history .drag-handle{ width:34px; height:34px; border-radius:8px; border:0; background: rgba(11,18,32,0.06); cursor:grab; display:inline-flex; align-items:center; justify-content:center; font-weight:800; color: var(--glass-text); }
         .floating-history .drag-handle:active{ cursor:grabbing }
@@ -305,7 +305,7 @@
             list-style:none;
             padding:0;           /* quitar padding para que la tarjeta encaje exactamente */
             margin:0;
-            height:150px;       /* reducir un poco la altura para evitar solapamiento con el botón */
+            height:130px;       /* reducir altura para panel más compacto */
             overflow-y:auto;    /* permitir desplazamiento con botones o rueda */
             scroll-snap-type: y mandatory; /* snap por tarjeta */
             -webkit-overflow-scrolling: touch;
@@ -325,25 +325,39 @@
         /* estilo por defecto para los items de historial: tarjeta con altura fija que encaja exactamente en el contenedor */
         #recent-history-list li{
             background: linear-gradient(180deg,#ffffff,#fbfdff);
-            border-radius:10px;
-            padding:12px 14px;
-            margin:0; /* sin margen para que cada li ocupe exactamente la altura del contenedor */
-            box-shadow: 0 8px 22px rgba(2,6,23,0.06);
-            border-left: 4px solid rgba(59,130,246,0.06);
+            border-radius:12px;
+            padding:10px 12px;
+            margin:0;
+            box-shadow: 0 4px 16px rgba(2,6,23,0.06);
+            border-left: 4px solid rgba(59,130,246,0.3);
             box-sizing: border-box;
-            height: 150px;      /* cada li tendrá EXACTAMENTE la misma altura que el contenedor */
-            overflow: hidden;   /* ocultar cualquier overflow dentro de la tarjeta */
-            scroll-snap-align: start; /* asegurar snap por tarjeta */
+            height: 130px;
+            overflow: hidden;
+            scroll-snap-align: start;
+            transition: all 200ms ease;
+        }
+        
+        #recent-history-list li:active {
+            box-shadow: 0 8px 24px rgba(2,6,23,0.1);
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width:768px) {
+            #recent-history-list li {
+                padding: 12px 12px;
+                border-radius: 10px;
+                box-shadow: 0 3px 12px rgba(2,6,23,0.05);
+            }
         }
         #recent-history-list li .order-title{ font-weight:800; color:#0b2a55; margin-bottom:6px }
         #recent-history-list li .item-row{ display:flex; gap:8px; align-items:center; font-size:13px; color: #334155 }
 
         /* responsive: en pantallas pequeñas hacemos la tarjeta ligeramente más corta para que encaje mejor */
         @media (max-width:900px){
-            #recent-history-list{ height:140px }
-            #recent-history-list li{ height:124px }
+            #recent-history-list{ height:120px }
+            #recent-history-list li{ height:110px }
             #recent-history .recent-nav button{ width:30px; height:30px }
-            .floating-history{ left: calc(18px + 140px); width: 260px }
+            .floating-history{ left: calc(18px + 140px); width: 240px }
         }
 
         /* Responsiveness for columns and blocks */
@@ -359,136 +373,286 @@
             .column{ min-width:92px; max-width:160px }
             .block{ height:50px; width:90% }
         }
-        /* ===== OPTIMIZACIÓN MÓVIL ===== */
+        /* ===== OPTIMIZACIÓN MÓVIL - DISEÑO LIMPIO Y ORGANIZADO ===== */
         @media (max-width:768px){
             body {
-                padding: 4px;
-                gap: 8px;
-                padding-bottom: 70px;
+                padding: 16px;
+                gap: 20px;
+                padding-bottom: 100px;
                 transform: scale(1);
+                background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
             }
+            
+            .title {
+                font-size: 26px;
+                margin: 0 0 24px 0;
+                padding: 20px 24px;
+                border-radius: 16px;
+                line-height: 1.3;
+                width: 100%;
+                box-sizing: border-box;
+                text-align: center;
+            }
+            
+            .main-container {
+                gap: 20px;
+                width: 100%;
+                max-width: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            /* Botones principales: solo 2 grandes botones por fila */
+            .top-controls {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+            }
+            
+            #btn-anular-solicitud {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            
+            #btn-entrada {
+                grid-column: 2;
+                grid-row: 1;
+            }
+            
+            #btn-salida {
+                grid-column: 1;
+                grid-row: 2;
+            }
+            
+            #btn-solicitar {
+                grid-column: 2;
+                grid-row: 2;
+            }
+            
+            #btn-panel-control {
+                grid-column: 1 / 3;
+                grid-row: 3;
+            }
+            
+            .top-controls button {
+                height: 64px;
+                font-size: 13px;
+                padding: 16px 20px;
+                border-radius: 14px;
+                font-weight: 800;
+                box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+                transition: all 240ms cubic-bezier(0.2,0.8,0.2,1);
+                cursor: pointer;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                line-height: 1.2;
+            }
+            
+            .top-controls button:active {
+                transform: scale(0.95);
+                box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            }
+            
+            /* Contenedor principal para las líneas - scrollable horizontal */
+            .right-panel {
+                width: 100%;
+                max-height: none;
+            }
+            
             .container {
-                gap: 8px;
-                padding: 8px 4px;
-                flex-wrap: wrap;
-                width: 100vw;
+                gap: 16px;
+                padding: 16px 0;
+                flex-wrap: nowrap;
+                width: 100%;
                 overflow-x: auto;
+                overflow-y: hidden;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
             }
+            
+            .container::-webkit-scrollbar {
+                height: 4px;
+            }
+            
+            .container::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            
+            .container::-webkit-scrollbar-thumb {
+                background: rgba(59,130,246,0.3);
+                border-radius: 2px;
+            }
+            
             .column {
-                min-width: 100px;
-                max-width: 140px;
-                padding: 6px 4px;
+                min-width: 130px;
+                max-width: 150px;
+                padding: 16px 14px;
                 flex-shrink: 0;
+                border-radius: 14px;
+                background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.88));
+                border: 2px solid rgba(59,130,246,0.15);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+                transition: all 220ms ease;
             }
+            
+            .column.empty {
+                border-color: rgba(239,68,68,0.5);
+                background: linear-gradient(180deg, rgba(255,245,245,0.98), rgba(255,240,240,0.88));
+                box-shadow: 0 6px 20px rgba(239,68,68,0.12);
+            }
+            
             .column-header {
-                font-size: 14px;
-                padding: 3px 4px;
-                margin-bottom: 6px;
-            }
-            .block {
-                height: 48px;
-                width: 88%;
-                margin: 6px 0;
-                font-size: 14px;
-            }
-            .block .label {
+                font-size: 15px;
+                font-weight: 800;
+                padding: 10px 0;
+                margin-bottom: 12px;
+                color: #0f172a;
+                text-align: center;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
                 font-size: 13px;
             }
-            .main-container {
-                gap: 8px;
-            }
-            .top-controls {
-                grid-template-columns: 1fr;
-                gap: 8px 12px;
-                padding: 4px 0;
-            }
-            .top-controls button {
-                height: 48px;
+            
+            .block {
+                height: 60px;
+                width: 100%;
+                margin: 10px 0;
                 font-size: 12px;
-                padding: 8px 12px;
-                border-radius: 8px;
-            }
-            .floating-actions {
-                flex-direction: column;
-                gap: 6px;
-                left: 4px;
-                top: 4px;
-            }
-            .manage-btn, .export-btn {
-                padding: 8px 10px;
-                font-size: 11px;
-                height: 40px;
-                border-radius: 6px;
-                min-width: 70px;
-            }
-            .floating-history {
-                margin: 8px 4px;
-                width: calc(100% - 8px);
-            }
-            .history-card {
+                font-weight: 800;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
                 padding: 8px;
-                font-size: 12px;
-                max-height: 180px;
+                box-sizing: border-box;
+                transition: all 180ms cubic-bezier(0.2,0.8,0.2,1);
+                cursor: pointer;
+                line-height: 1.1;
             }
+            
+            .block:active {
+                transform: scale(0.92);
+            }
+            
+            .block .label {
+                font-size: 11px;
+                font-weight: 800;
+                line-height: 1.2;
+                color: inherit;
+            }
+            
+            .sol-timer {
+                font-size: 10px;
+                margin-top: 8px;
+                padding: 6px 8px;
+                border-radius: 8px;
+                text-align: center;
+                background: rgba(59,130,246,0.12);
+                font-weight: 700;
+                color: #1e40af;
+            }
+            
+            /* Historial flotante: prominente en móvil */
+            .floating-actions {
+                display: none !important;
+            }
+            
+            .floating-history {
+                position: static;
+                margin: 24px 0 0 0;
+                width: 100%;
+                left: auto;
+                top: auto;
+            }
+            
+            .history-card {
+                padding: 18px;
+                font-size: 13px;
+                max-height: 280px;
+                border-radius: 14px;
+                background: linear-gradient(135deg, rgba(255,255,255,0.99), rgba(248,250,252,0.96));
+                border: 2px solid rgba(59,130,246,0.15);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            }
+            
             .bottom-container {
-                padding: 8px 4px;
-                gap: 8px;
+                padding: 0;
+                gap: 0;
+                width: 100%;
+            }
+            
+            .controls {
+                display: none !important;
             }
         }
         @media (max-width:480px){
             body {
-                padding: 2px;
-                gap: 4px;
-                padding-bottom: 66px;
+                padding: 10px;
+                gap: 10px;
+                padding-bottom: 86px;
+            }
+            .title {
+                font-size: 22px;
+                padding: 12px 16px;
+                margin: 6px 0 12px 0;
             }
             .container {
-                gap: 4px;
-                padding: 4px 2px;
+                gap: 10px;
+                padding: 6px 0;
             }
             .column {
-                min-width: 80px;
-                max-width: 120px;
-                padding: 4px 2px;
+                min-width: 105px;
+                max-width: 130px;
+                padding: 12px 10px;
             }
             .column-header {
-                font-size: 12px;
-                padding: 2px 3px;
-                margin-bottom: 4px;
+                font-size: 13px;
+                margin-bottom: 8px;
+                padding: 6px 0;
             }
             .block {
-                height: 44px;
-                width: 85%;
-                margin: 4px 0;
-                font-size: 12px;
+                height: 52px;
+                font-size: 11px;
+                margin: 6px 0;
+                padding: 6px;
             }
             .top-controls {
-                grid-template-columns: 1fr;
-                gap: 6px;
-                padding: 2px 0;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-bottom: 6px;
             }
             .top-controls button {
-                height: 44px;
+                height: 52px;
                 font-size: 11px;
-                padding: 6px 10px;
+                padding: 10px 12px;
             }
             .floating-actions {
-                left: 2px;
-                top: 2px;
+                display: none !important;
             }
             .manage-btn, .export-btn {
-                padding: 6px 8px;
+                padding: 8px 10px;
                 font-size: 10px;
-                height: 36px;
-                min-width: 60px;
+                height: 40px;
             }
             .col-sol-timer, .col-empty-timer {
-                font-size: 10px;
+                font-size: 9px;
                 padding: 2px 4px;
             }
             .history-card {
-                padding: 6px;
-                font-size: 11px;
-                max-height: 150px;
+                padding: 10px;
+                font-size: 12px;
+                max-height: 180px;
             }
         }
     /* panel derecho: contenedor de líneas */
@@ -743,38 +907,181 @@
     /* move the knob to the right based on the smaller width (36 - 14 - padding*2 = 20) */
     .toggle-switch.active::after{ transform: translateX(20px); }
     .toggle-switch:hover{ transform: scale(1.05); }
-    /* título con efecto glassmorphism */
-    .title {
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-        color: var(--glass-text);
-        text-align: center;
-        background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.55));
-        backdrop-filter: blur(12px) saturate(150%);
-        padding: 12px 28px;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.6);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.06), inset 0 1px 1px rgba(255,255,255,0.9);
-        max-width: 520px;
-        margin-top: -10px;
-        margin-bottom: 8px;
-        background-clip: text;
+    
+    /* Modal de password personalizado */
+    .password-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+        animation: fadeIn 0.2s ease;
     }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .password-modal {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 400px;
+        width: 90%;
+        animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .password-modal h3 {
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        color: #1e293b;
+        font-weight: 600;
+    }
+    .password-input-wrapper {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .password-modal input {
+        width: 100%;
+        padding: 12px 45px 12px 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+    .password-modal input:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+    .password-toggle-eye {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 20px;
+        padding: 4px;
+        color: #64748b;
+        transition: color 0.2s;
+    }
+    .password-toggle-eye:hover {
+        color: #1e293b;
+    }
+    .password-modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    .password-modal-buttons button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .password-modal-buttons .btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+    }
+    .password-modal-buttons .btn-cancel:hover {
+        background: #e2e8f0;
+    }
+    .password-modal-buttons .btn-accept {
+        background: #6b7904;
+        color: white;
+    }
+    .password-modal-buttons .btn-accept:hover {
+        background: #5a6603;
+    }
+    
+    /* título con efecto glassmorphism - MEJORADO */
+    .title {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.8px;
+        color: #0f172a;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+        backdrop-filter: blur(12px) saturate(180%);
+        padding: 16px 28px;
+        border-radius: 16px;
+        border: 1px solid rgba(59,130,246,0.15);
+        box-shadow: 0 12px 40px rgba(59,130,246,0.08), inset 0 1px 1px rgba(255,255,255,0.95);
+        max-width: 100%;
+        margin-top: 8px;
+        margin-bottom: 12px;
+        background-clip: unset;
+        word-break: break-word;
+        line-height: 1.3;
+        transition: all 200ms ease;
+    }
+    
+    @media (max-width:768px){
+        .title {
+            font-size: 24px;
+            font-weight: 800;
+            padding: 14px 20px;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            letter-spacing: -0.6px;
+            box-shadow: 0 6px 24px rgba(59,130,246,0.06);
+        }
+    }
+    
+    @media (max-width:480px){
+        .title {
+            font-size: 22px;
+            padding: 12px 16px;
+            margin-top: 2px;
+            margin-bottom: 8px;
+        }
+    }
+    
     .manage-btn{
         margin-top:12px;
         display:inline-block;
         width:100%;
-        padding:10px 12px;
-        border-radius:10px;
-        background: linear-gradient(90deg,var(--accent2), #60a5fa);
+        padding:12px 16px;
+        border-radius:12px;
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
         color:white;
         border:none;
         cursor:pointer;
         font-weight:700;
-        box-shadow: 0 10px 26px rgba(59,130,246,0.12);
+        box-shadow: 0 8px 20px rgba(59,130,246,0.12);
+        transition: all 200ms cubic-bezier(0.2,0.8,0.2,1);
+        font-size: 14px;
     }
-    .manage-btn:active{ transform: translateY(1px) }
+    .manage-btn:hover{ 
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(59,130,246,0.18);
+    }
+    .manage-btn:active{ 
+        transform: translateY(1px);
+        box-shadow: 0 4px 12px rgba(59,130,246,0.12);
+    }
+    
+    @media (max-width:768px) {
+        .manage-btn {
+            padding: 12px 14px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+    }
     /* panel de reporte de líneas vacías (lista roja) */
     .empty-report{
         width: 280px;
@@ -858,7 +1165,7 @@
     .manage-item input{ padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08) }
     .manage-actions{ display:flex; gap:8px; margin-top:12px }
     
-    /* ===== BARRA DE NAVEGACIÓN MÓVIL ===== */
+    /* ===== BARRA DE NAVEGACIÓN MÓVIL - MEJORADA ===== */
     @media (max-width:768px){
         #mobile-bottom-nav {
             display: flex;
@@ -866,58 +1173,90 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: linear-gradient(180deg, #ffffff, #fbfdff);
-            border-top: 1px solid rgba(0,0,0,0.1);
+            height: 70px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(251,253,255,0.96));
+            border-top: 2px solid rgba(59,130,246,0.1);
             gap: 0;
             z-index: 110;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(10px) saturate(180%);
+            padding: 0;
+            margin: 0;
         }
         
         #mobile-bottom-nav button {
             flex: 1;
             background: transparent;
             border: none;
-            border-top: 3px solid transparent;
-            color: #666;
+            border-top: 4px solid transparent;
+            color: #64748b;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 2px;
-            transition: all 120ms ease;
-            padding: 4px 0;
+            gap: 4px;
+            transition: all 180ms cubic-bezier(0.2,0.8,0.2,1);
+            padding: 6px 0;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #mobile-bottom-nav button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02));
+            opacity: 0;
+            transition: opacity 180ms ease;
+            pointer-events: none;
+        }
+        
+        #mobile-bottom-nav button:active::before,
+        #mobile-bottom-nav button.active::before {
+            opacity: 1;
         }
         
         #mobile-bottom-nav button:active,
         #mobile-bottom-nav button.active {
             border-top-color: #3b82f6;
             color: #3b82f6;
-            background: rgba(59,130,246,0.05);
+            transform: translateY(-2px);
+        }
+        
+        #mobile-bottom-nav button:active .icon {
+            transform: scale(1.2);
         }
         
         #mobile-bottom-nav .icon {
-            font-size: 18px;
+            font-size: 22px;
+            transition: transform 180ms ease;
+            display: inline-block;
         }
         
         /* Agregar padding inferior al body para que no se oculte contenido */
         body {
-            padding-bottom: 70px;
+            padding-bottom: 80px;
         }
-        
-        @media (max-width:480px){
-            #mobile-bottom-nav {
-                height: 56px;
-            }
-            #mobile-bottom-nav button {
-                font-size: 10px;
-            }
-            body {
-                padding-bottom: 66px;
-            }
+    }
+    
+    @media (max-width:480px){
+        #mobile-bottom-nav {
+            height: 66px;
+        }
+        #mobile-bottom-nav button {
+            font-size: 10px;
+            gap: 3px;
+            padding: 4px 0;
+        }
+        #mobile-bottom-nav .icon {
+            font-size: 20px;
+        }
+        body {
+            padding-bottom: 76px;
         }
     }
     
@@ -930,6 +1269,7 @@
 <!-- Firebase SDK (compat - works without modules) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <!-- Firebase Sync Module -->
 <script src="firebase-sync.js"></script>
 </head>
@@ -981,18 +1321,18 @@
     <!-- panel embebido de gestión de líneas -->
     <aside id="manage-panel" class="manage-panel" aria-hidden="true">
         <h2>Gestionar líneas</h2>
-        <p class="small">Añade, edita o quita líneas. Los cambios se guardan en tu navegador y la vista principal se actualizará automáticamente.</p>
+        <p class="small">Añade, edita o quita líneas. Los cambios se guardan automáticamente en Firebase y se sincronizarán en todas tus pestañas.</p>
         <div class="manage-row">
             <input id="m-new-name" type="text" placeholder="Nombre nueva línea (ej. PK11)" />
             <button id="m-btn-add" class="btn btn-add">Añadir</button>
         </div>
         <div id="m-lines-list" class="manage-list"></div>
         <div class="manage-actions">
-            <button id="m-btn-save" class="btn btn-save">Guardar</button>
+            <button id="m-btn-save" class="btn btn-save">Sincronizar</button>
             <button id="m-btn-close" class="btn" style="margin-left:auto">Cerrar</button>
         </div>
     </aside>
-    <h1 class="title" style="font-size:32px; font-weight:800; margin-top:18px; margin-bottom:18px; text-align:center; letter-spacing:1px; background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65)); color:#0f172a;">ESTATUS FLUJO PACIALES DE VIDRIO</h1>
+    <h1 class="title" style="font-size:32px; font-weight:800; margin-top:12px; margin-bottom:1px; margin-left:auto; margin-right:auto; text-align:center; letter-spacing:1px; background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65)); color:#0f172a; line-height:1.4; word-spacing:2px; max-width:600px;">ESTATUS<br>FLUJO PACIALES<br>DE VIDRIO</h1>
     <!-- (removed stray closing tag that broke DOM structure) -->
     <script>
     // wire the visible "Probar historial" button (creates a test entry and updates the UI)
@@ -1059,42 +1399,111 @@
     //     }
     // })();
 
-    document.addEventListener('DOMContentLoaded', function(){
-        const input = document.getElementById('line-name');
-        const btnAdd = document.getElementById('btn-entrada');
-        const btnRemove = document.getElementById('btn-salida');
-        const status = document.getElementById('control-status');
-
-        // Inicializar líneas por defecto si no existen en localStorage
-        try{
-            const storedLines = localStorage.getItem('pk_lines');
-            if(!storedLines || JSON.parse(storedLines).length === 0){
-                const defaultLines = [
-                    { name: 'PKB1', count: 0, active: true },
-                    { name: 'PKB2', count: 0, active: true },
-                    { name: 'PKB3', count: 0, active: true },
-                    { name: 'PKB4', count: 0, active: true },
-                    { name: 'PKB5', count: 0, active: true },
-                    { name: 'PKB6', count: 0, active: true },
-                    { name: 'JVH2', count: 0, active: true },
-                    { name: 'EYS', count: 0, active: true },
-                    { name: 'MAQ', count: 0, active: true }
-                ];
-                localStorage.setItem('pk_lines', JSON.stringify(defaultLines));
-                if(window.applyLinesToDOM){
-                    window.applyLinesToDOM(defaultLines);
-                    console.log('🎨 Líneas por defecto aplicadas');
+    document.addEventListener('DOMContentLoaded', async function(){
+        // ===== DIAGNÓSTICO DE FIREBASE =====
+        console.log('%c🔍 DIAGNÓSTICO FIREBASE', 'color: blue; font-weight: bold; font-size: 14px;');
+        console.log('Firebase SDK cargado:', !!window.firebase);
+        console.log('Firebase Database disponible:', !!window.firebase?.database);
+        console.log('window.db disponible:', !!window.db);
+        console.log('firebaseInitPromise disponible:', !!window.firebaseInitPromise);
+        
+        // ⚡ INTENTAR CARGAR DESDE FIREBASE PRIMERO
+        console.log('🚀 Intentando cargar datos desde Firebase...');
+        let firebaseDataLoaded = false;
+        
+        try {
+            if(window.firebaseInitPromise) {
+                await window.firebaseInitPromise;
+                console.log('✅ Firebase inicializado, esperando conexión...');
+            }
+            
+            if(window.db) {
+                const snapshot = await window.db.ref('kanban_estado').once('value');
+                const firebaseKanban = snapshot.val();
+                
+                if(firebaseKanban && Object.keys(firebaseKanban).length > 0) {
+                    console.log('📥 DATOS ENCONTRADOS EN FIREBASE:', firebaseKanban);
+                    
+                    // CONVERTIR objetos a arrays (Firebase convierte arrays en objetos)
+                    const convertToArray = (obj) => {
+                        if(!obj) return [];
+                        if(Array.isArray(obj)) return obj;
+                        const keys = Object.keys(obj).sort((a, b) => parseInt(a) - parseInt(b));
+                        return keys.map(k => obj[k]);
+                    };
+                    
+                    // Crear líneas desde Firebase
+                    const lines = Object.keys(firebaseKanban).map(lineName => ({
+                        name: lineName,
+                        count: (convertToArray(firebaseKanban[lineName]) || []).length,
+                        active: true
+                    }));
+                    
+                    console.log('🎯 Líneas creadas desde Firebase:', lines);
+                    
+                    try { localStorage.setItem('pk_lines', JSON.stringify(lines)); } catch(e) { console.warn('localStorage no disponible'); }
+                    
+                    // Guardar nombres de bloques en pk_block_names
+                    const pk_block_names = {};
+                    Object.keys(firebaseKanban).forEach(lineName => {
+                        const parciales = convertToArray(firebaseKanban[lineName]);
+                        pk_block_names[lineName] = {};
+                        parciales.forEach((parcialName, idx) => {
+                            pk_block_names[lineName][String(idx)] = parcialName;
+                        });
+                    });
+                    try { localStorage.setItem('pk_block_names', JSON.stringify(pk_block_names)); } catch(e) { console.warn('localStorage no disponible'); }
+                    
+                    console.log('🏷️ pk_block_names guardado:', pk_block_names);
+                    
+                    if(window.applyLinesToDOM) {
+                        window.applyLinesToDOM(lines);
+                        console.log('✅ Líneas renderizadas desde Firebase');
+                    }
+                    
+                    firebaseDataLoaded = true;
                 }
             }
-        }catch(e){
-            console.warn('Error inicializando líneas por defecto:', e);
+        } catch(e) {
+            console.warn('⚠️ Error cargando desde Firebase:', e);
+        }
+        
+        // SI NO HAY DATOS EN FIREBASE, usar líneas por defecto
+        if(!firebaseDataLoaded) {
+            console.log('📌 Firebase vacío, usando líneas por defecto...');
+            try{
+                const storedLines = localStorage.getItem('pk_lines');
+                if(!storedLines || JSON.parse(storedLines).length === 0){
+                    const defaultLines = [
+                        { name: 'PKB1', count: 0, active: true },
+                        { name: 'PKB2', count: 0, active: true },
+                        { name: 'PKB3', count: 0, active: true },
+                        { name: 'PKB4', count: 0, active: true },
+                        { name: 'PKB5', count: 0, active: true },
+                        { name: 'PKB6', count: 0, active: true },
+                        { name: 'JVH2', count: 0, active: true },
+                        { name: 'EYS', count: 0, active: true },
+                        { name: 'MAQ', count: 0, active: true }
+                    ];
+                    localStorage.setItem('pk_lines', JSON.stringify(defaultLines));
+                    if(window.applyLinesToDOM){
+                        window.applyLinesToDOM(defaultLines);
+                        console.log('🎨 Líneas por defecto aplicadas');
+                    }
+                }
+            }catch(e){
+                console.warn('Error inicializando líneas por defecto:', e);
+            }
         }
 
         // Do NOT reset persisted timers on load. Preserve `pk_solicitud_salida` and `pk_empty_since` so
         // durations survive page reloads. Run a small deferred refresh of timer UI to pick up stored values.
         try{ setTimeout(()=>{ try{ ensureTimerElements(); updateColumnTimers(); window.updateSolicitudDurationsDisplay && window.updateSolicitudDurationsDisplay(); window.updateEmptyDurationsDisplay && window.updateEmptyDurationsDisplay(); }catch(e){} }, 50); }catch(e){}
 
-        
+        const input = document.getElementById('line-name');
+        const btnAdd = document.getElementById('btn-entrada');
+        const btnRemove = document.getElementById('btn-salida');
+        const status = document.getElementById('control-status');
 
         // poblar datalist con las líneas existentes
         function populateDatalist(){
@@ -1372,7 +1781,7 @@
             }
         }
 
-        function onPointerUp(ev){
+        async function onPointerUp(ev){
             if(!_dragState) return;
             const x = ev.clientX; const y = ev.clientY;
             // determine drop target
@@ -1402,7 +1811,9 @@
 
                     // load existing history, append new entries for each removed block
                     let newEntries = [];
-                    removedBlocks.forEach(async rb => {
+                    
+                    // 🔥 IMPORTANTE: Ejecutar TODAS las eliminaciones en paralelo pero ESPERAR A QUE TERMINEN
+                    await Promise.all(removedBlocks.map(async rb => {
                         try{
                             const prevSolic = solicitudMap[rb.line] && solicitudMap[rb.line].solicitud ? parseInt(solicitudMap[rb.line].solicitud,10) : null;
                             const duration = prevSolic ? Math.max(0, now - prevSolic) : 0;
@@ -1411,8 +1822,70 @@
                             if(window.FirebaseSync){
                                 await window.FirebaseSync.addAbastecimiento(rb.line, rb.name || (`${rb.line}#${rb.index}`));
                             }
+                            
+                            // 🗑️ ELIMINAR DE kanban_estado EN FIREBASE Y REORGANIZAR ÍNDICES
+                            if(window.db){
+                                try{
+                                    // 1. Leer todo kanban_estado
+                                    const kanbanSnap = await window.db.ref('kanban_estado').once('value');
+                                    const kanbanData = kanbanSnap.val() || {};
+                                    
+                                    // 2. Eliminar el parcial específico
+                                    const lineParciales = kanbanData[rb.line] || {};
+                                    delete lineParciales[rb.index];
+                                    
+                                    // 3. Convertir a array limpio (sin huecos)
+                                    const parcialesArray = Object.keys(lineParciales)
+                                        .sort((a, b) => parseInt(a) - parseInt(b))
+                                        .map(key => lineParciales[key]);
+                                    
+                                    // 4. Guardar nuevamente reorganizado
+                                    if(parcialesArray.length > 0) {
+                                        const reorganized = {};
+                                        parcialesArray.forEach((parcial, idx) => {
+                                            reorganized[idx] = parcial;
+                                        });
+                                        await window.db.ref(`kanban_estado/${rb.line}`).set(reorganized);
+                                    } else {
+                                        // Si no hay parciales, eliminar la línea
+                                        await window.db.ref(`kanban_estado/${rb.line}`).remove();
+                                    }
+                                    
+                                    // 5. También eliminar de solicitudes si estaba ahí
+                                    try{
+                                        await window.db.ref(`solicitudes/${rb.line}/${rb.index}`).remove();
+                                    }catch(e){ /* ignored */ }
+                                    
+                                    console.log(`✅ Parcial eliminado y reorganizado en Firebase: ${rb.line}[${rb.index}]`);
+                                    
+                                    // 🔍 VERIFICAR SI QUEDAN MÁS SOLICITUDES DE ESTA LÍNEA ANTES DE DETENER EL TIMER
+                                    try{
+                                        const remainingSolicitudes = await window.db.ref(`solicitudes/${rb.line}`).once('value');
+                                        const solicitudesData = remainingSolicitudes.val() || {};
+                                        const remainingKeys = Object.keys(solicitudesData);
+                                        const hasMoreSolicitudes = remainingKeys.length > 0;
+                                        
+                                        console.log(`%c🔍 VERIFICANDO SOLICITUDES RESTANTES DE ${rb.line} (drag-drop):`, 'background: #2196F3; color: white; font-weight: bold;', {
+                                            solicitudesData,
+                                            remainingKeys,
+                                            hasMoreSolicitudes
+                                        });
+                                        
+                                        if(!hasMoreSolicitudes){
+                                            // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES SOLO SI NO HAY MÁS SOLICITUDES
+                                            await window.db.ref(`solicitud_times/${rb.line}`).remove();
+                                            console.log(`%c⏱️ TIMER DETENIDO EN FIREBASE (no hay más solicitudes): ${rb.line}`, 'background: #4CAF50; color: white; font-weight: bold;');
+                                            
+                                            // Limpiar cache local
+                                            if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[rb.line];
+                                        } else {
+                                            console.log(`%c⏱️ TIMER SIGUE CORRIENDO (quedan ${remainingKeys.length} solicitudes): ${rb.line}`, 'background: #FF9800; color: white; font-weight: bold;', remainingKeys);
+                                        }
+                                    }catch(e){ console.warn('Error verificando solicitudes restantes:', e); }
+                                }catch(e){ console.warn('Error eliminando/reorganizando parcial de Firebase:', e); }
+                            }
                         }catch(e){ console.error('Error registrando abastecimiento en Firebase:', e); }
-                    });
+                    }));
                     // persist via helper so view is refreshed
                     try{ addHistoryEntries(newEntries); }catch(e){}
 
@@ -1437,6 +1910,15 @@
                     try{ saveState(); }catch(e){}
                     // apply UI updates
                     try{ applyRequestedToDOM(); ensureTimerElements(); updateColumnTimers(); window.updateSolicitudDurationsDisplay && window.updateSolicitudDurationsDisplay(); window.historialModule && window.historialModule.renderizar(); }catch(e){}
+                    
+                    // 🔄 Sincronizar desde Firebase después de procesar abastecimiento
+                    setTimeout(async ()=>{
+                        try{
+                            console.log('🔄 Iniciando sincronización post-abastecimiento desde Firebase...');
+                            await loadAllDataFromFirebase();
+                            console.log('✅ Sincronización post-abastecimiento completada desde Firebase');
+                        }catch(e){ console.warn('⚠️ Error en sincronización post-abastecimiento:', e); }
+                    }, 500);
                     
                     // Mostrar notificación de éxito después de drag-drop
                     setTimeout(()=>{
@@ -1532,17 +2014,41 @@
             // ✅ SINCRONIZAR CON FIREBASE - Esperar un poco para que el DOM esté actualizado
             setTimeout(async () => {
                 try{
+                    console.log('🔄 INICIANDO SINCRONIZACIÓN (addPartial)...');
+                    
                     // Esperar a que Firebase esté inicializado
                     if(window.firebaseInitPromise){
                         await window.firebaseInitPromise;
+                        console.log('✅ Firebase está inicializado');
                     }
                     
                     const kanbanState = getCurrentKanbanState();
-                    console.log('📤 Enviando estado a Firebase:', kanbanState);
+                    console.log('📤 Enviando estado completo del Kanban a Firebase...');
+                    console.log('📦 Estado a enviar:', JSON.stringify(kanbanState, null, 2));
                     
                     if(window.FirebaseSync && window.FirebaseSync.updateKanbanState){
+                        // Actualizar timestamp local antes de enviar
+                        window._lastKanbanUpdate = JSON.stringify(kanbanState);
+                        
                         const result = await window.FirebaseSync.updateKanbanState(kanbanState);
-                        console.log('✅ Resultado de sincronización:', result);
+                        console.log('✅ Resultado de sincronización con Firebase:', result);
+                        
+                        if(result.success){
+                            console.log('🎉 SINCRONIZACIÓN EXITOSA - Los otros dispositivos deberían ver el cambio');
+                            
+                            // Verificar que realmente se escribió en Firebase
+                            setTimeout(async () => {
+                                try {
+                                    const verifySnap = await window.db.ref('kanban_estado').once('value');
+                                    const verifyData = verifySnap.val() || {};
+                                    console.log('🔍 VERIFICACIÓN: Datos en Firebase:', verifyData);
+                                } catch(e) {
+                                    console.error('❌ Error verificando datos:', e);
+                                }
+                            }, 500);
+                        } else {
+                            console.error('❌ SINCRONIZACIÓN FALLÓ:', result.error);
+                        }
                     } else {
                         console.warn('⚠ FirebaseSync no disponible');
                     }
@@ -1619,17 +2125,27 @@
                     // ✅ SINCRONIZAR ELIMINACIÓN CON FIREBASE - Esperar a que se complete la animación
                     setTimeout(async () => {
                         try{
+                            console.log('🔄 INICIANDO SINCRONIZACIÓN (removePartial)...');
+                            
                             // Esperar a que Firebase esté inicializado
                             if(window.firebaseInitPromise){
                                 await window.firebaseInitPromise;
+                                console.log('✅ Firebase está inicializado');
                             }
                             
                             const kanbanState = getCurrentKanbanState();
-                            console.log('📤 Enviando estado actualizado a Firebase:', kanbanState);
+                            console.log('📤 Enviando estado actualizado tras eliminación a Firebase...');
+                            console.log('📦 Estado a enviar:', JSON.stringify(kanbanState, null, 2));
                             
                             if(window.FirebaseSync && window.FirebaseSync.updateKanbanState){
                                 const result = await window.FirebaseSync.updateKanbanState(kanbanState);
-                                console.log('✅ Resultado de eliminación:', result);
+                                console.log('✅ Resultado de sincronización (eliminación):', result);
+                                
+                                if(result.success){
+                                    console.log('🎉 ELIMINACIÓN SINCRONIZADA - Los otros dispositivos deberían ver el cambio');
+                                } else {
+                                    console.error('❌ SINCRONIZACIÓN DE ELIMINACIÓN FALLÓ:', result.error);
+                                }
                             } else {
                                 console.warn('⚠ FirebaseSync no disponible');
                             }
@@ -1675,26 +2191,7 @@
                 if(line.active === false){
                     col.classList.add('inactive');
                 }
-                // toggle switch for activate/deactivate
-                const toggle = document.createElement('button');
-                toggle.className = 'toggle-switch';
-                if(line.active !== false) toggle.classList.add('active');
-                toggle.type = 'button';
-                toggle.title = line.active !== false ? 'Clic para desactivar' : 'Clic para activar';
-                toggle.addEventListener('click', async (e)=>{
-                    e.stopPropagation();
-                    try{
-                        // flip active flag for this line
-                        lines[idx].active = !(lines[idx].active === false);
-                        // persist
-                        try{ localStorage.setItem('pk_lines', JSON.stringify(lines)); }catch(err){ console.error('failed saving pk_lines', err); }
-                        // re-render columns from updated lines
-                        try{ renderColumns(lines); }catch(err){ console.warn('re-render after toggle failed', err); }
-                        // notify other listeners/tabs
-                        try{ window.dispatchEvent(new StorageEvent('storage', {key:'pk_lines'})); }catch(e){ }
-                    }catch(err){ console.error('toggle failed', err); }
-                });
-                col.appendChild(toggle);
+                // Toggle buttons eliminados - usar panel de gestión para activar/desactivar líneas
                 
                 const h = document.createElement('div');
                 h.className = 'column-header';
@@ -1782,26 +2279,46 @@
                 const cols = Array.from(document.querySelectorAll('.container > .column'));
                 const blockNamesMap = JSON.parse(localStorage.getItem('pk_block_names')||'{}');
                 
+                console.log('🔍 getCurrentKanbanState: Leyendo estado actual del DOM...');
+                
                 cols.forEach(col => {
                     const lineName = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
                     const blocks = Array.from(col.querySelectorAll('.block'));
+                    
+                    console.log(`📋 Línea ${lineName}: ${blocks.length} bloques`);
+                    
                     const parciales = blocks.map((b, idx) => {
-                        const blockName = b.getAttribute('data-name') || 
-                                         (blockNamesMap[lineName] && blockNamesMap[lineName][String(idx)]) ||
-                                         (b.querySelector('.label')||{}).textContent || 
-                                         `Parcial ${idx+1}`;
+                        // Prioridad 1: data-name attribute (lo más confiable)
+                        let blockName = b.getAttribute('data-name');
+                        
+                        // Prioridad 2: pk_block_names del localStorage
+                        if(!blockName && blockNamesMap[lineName]){
+                            blockName = blockNamesMap[lineName][String(idx)];
+                        }
+                        
+                        // Prioridad 3: texto del label visible
+                        if(!blockName){
+                            const labelEl = b.querySelector('.label');
+                            blockName = labelEl ? labelEl.textContent.trim() : '';
+                        }
+                        
+                        // Prioridad 4: fallback genérico
+                        if(!blockName){
+                            blockName = `Parcial ${idx+1}`;
+                        }
+                        
+                        console.log(`  📦 [${idx}] = "${blockName}"`);
                         return blockName;
                     });
-                    if(parciales.length > 0){
-                        kanbanState[lineName] = parciales;
-                    } else {
-                        kanbanState[lineName] = [];
-                    }
+                    
+                    // SIEMPRE incluir la línea, incluso si está vacía
+                    kanbanState[lineName] = parciales;
                 });
                 
+                console.log('✅ Estado del Kanban capturado:', kanbanState);
                 return kanbanState;
             }catch(e){ 
-                console.error('getCurrentKanbanState', e); 
+                console.error('❌ getCurrentKanbanState error:', e); 
                 return {}; 
             }
         }
@@ -1965,41 +2482,82 @@
             if(mm>0) return `${mm}m ${ss}s`;
             return `${ss}s`;
         }
-
+        
+        // 🔥 OBJETO GLOBAL PARA ALMACENAR TIMESTAMPS DE FIREBASE EN TIEMPO REAL
+        window.firebaseTimestampsCache = {};
+        
         // Update per-column timers based on pk_solicitud_salida entries
         function updateColumnTimers(){
             try{
                 const map = JSON.parse(localStorage.getItem('pk_solicitud_salida')||'{}');
-                console.log('updateColumnTimers: map keys', Object.keys(map));
+                
                 const cols = Array.from(document.querySelectorAll('.container > .column'));
                 cols.forEach(col => {
                     const name = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
                     const timerEl = col.querySelector('.sol-timer');
                     if(!timerEl) return;
-                    const entry = map[name];
-                    if(entry && entry.solicitud){
-                        const solicitud = parseInt(entry.solicitud,10) || 0;
-                        const salida = entry.salida ? (parseInt(entry.salida,10)||0) : 0;
-                        if(solicitud && !salida){
-                            timerEl.textContent = 'Solicitado: ' + formatDurationShort(Date.now() - solicitud);
-                            try{ console.log('updateColumnTimers active:', name, Date.now() - solicitud); }catch(e){}
-                        } else if(solicitud && salida){
-                            timerEl.textContent = 'Tiempo: ' + formatDurationShort(salida - solicitud);
-                        } else timerEl.textContent = '';
+                    
+                    // 🔥 LEER DESDE CACHE DE FIREBASE (actualizado en tiempo real por listeners)
+                    const firebaseStart = window.firebaseTimestampsCache ? window.firebaseTimestampsCache[name] : null;
+                    
+                    // DEBUG: Mostrar cache completo cada 5 segundos
+                    if(!window._lastCacheLog || Date.now() - window._lastCacheLog > 5000){
+                        console.log('%c📦 CACHE ACTUAL:', 'background: #9C27B0; color: white;', window.firebaseTimestampsCache);
+                        window._lastCacheLog = Date.now();
+                    }
+                    
+                    if(firebaseStart){
+                        // ✅ USAR TIMESTAMP DE FIREBASE (sincronizado)
+                        const elapsed = Date.now() - firebaseStart;
+                        timerEl.textContent = 'Solicitado: ' + formatDurationShort(elapsed);
                     } else {
-                        timerEl.textContent = '';
+                        // Fallback a localStorage si no hay en Firebase
+                        const entry = map[name];
+                        if(entry && entry.solicitud){
+                            const solicitud = parseInt(entry.solicitud,10) || 0;
+                            const salida = entry.salida ? (parseInt(entry.salida,10)||0) : 0;
+                            if(solicitud && !salida){
+                                timerEl.textContent = 'Solicitado: ' + formatDurationShort(Date.now() - solicitud);
+                            } else if(solicitud && salida){
+                                timerEl.textContent = 'Tiempo: ' + formatDurationShort(salida - solicitud);
+                            } else timerEl.textContent = '';
+                        } else {
+                            timerEl.textContent = '';
+                        }
                     }
                 });
-            }catch(e){ console.error('updateColumnTimers error', e); }
+            }catch(e){ console.error('%c❌ updateColumnTimers ERROR:', 'background: #FF6B6B; color: white;', e); }
         }
 
         // start interval to refresh column timers (and keep a quick initial update)
         try{
-            console.log('starting column timers interval');
+            console.log('%c⏱️ INICIANDO INTERVALO DE TIMERS CADA 500ms...', 'background: #FF9800; color: white; font-weight: bold;');
             // store interval id in window for debugging/ability to clear
-            window._colTimersInterval = setInterval(()=>{ try{ ensureTimerElements(); updateColumnTimers(); }catch(e){ console.error('timer interval error', e); } }, 1000);
-            console.log('column timers interval id:', window._colTimersInterval);
-        }catch(e){ console.error('failed to start timers interval', e); }
+            // Aumentado a 500ms para actualización más frecuente
+            window._colTimersInterval = setInterval(()=>{ 
+                try{ 
+                    ensureTimerElements(); 
+                    updateColumnTimers(); 
+                }catch(e){ 
+                    console.error('%c❌ TIMER INTERVAL ERROR:', 'background: #FF6B6B; color: white;', e); 
+                } 
+            }, 500);
+            console.log('%c✅ INTERVALO INICIADO:', 'background: #4CAF50; color: white;', 'ID =', window._colTimersInterval);
+        }catch(e){ 
+            console.error('%c❌ FAILED TO START TIMERS INTERVAL:', 'background: #FF6B6B; color: white;', e); 
+        }
+        
+        // 🔄 TAMBIÉN ESCUCHAR CAMBIOS EN localStorage PARA ACTUALIZACIONES CROSS-TAB
+        window.addEventListener('storage', (e) => {
+            if(e.key === 'solicitud_times_firebase'){
+                console.log('%c🔄 EVENTO STORAGE: solicitud_times_firebase CAMBIÓ EN OTRA PESTAÑA', 'background: #2196F3; color: white; font-weight: bold;');
+                try{ 
+                    updateColumnTimers(); 
+                }catch(err){ 
+                    console.error('%c❌ Error en storage event handler:', 'background: #FF6B6B; color: white;', err); 
+                }
+            }
+        });
 
         // expose functions for manual debugging in console
         try{ window.ensureTimerElements = ensureTimerElements; window.updateColumnTimers = updateColumnTimers; }catch(e){ }
@@ -2062,37 +2620,621 @@
 
         // initial attempt to load from storage; if none, keep static DOM
         loadLinesFromStorage();
+        
+        // 🧹 LIMPIAR SOLICITUDES LOCALES - Firebase será la única fuente de verdad
+        console.log('🧹 Limpiando pk_requested local (Firebase es la fuente de verdad)...');
+        try{ 
+            localStorage.setItem('pk_requested', JSON.stringify({})); 
+            console.log('✅ pk_requested limpiado - esperando datos de Firebase');
+        }catch(e){}
+        
         // ensure static DOM blocks have data attributes, then apply requested state and show timers
-        try{ ensureBlockDataAttributes(); applyRequestedToDOM(); ensureTimerElements(); updateColumnTimers(); }catch(e){}
+        try{ ensureBlockDataAttributes(); ensureTimerElements(); updateColumnTimers(); }catch(e){}
+
+        // 🔄 FUNCIÓN GLOBAL PARA SINCRONIZAR PANEL DE GESTIÓN
+        window.syncManagePanelFromFirebase = function(){
+            console.log('🔄 [SINCRONIZACIÓN GLOBAL] Actualizando panel de gestión...');
+            try{
+                // Buscar la función render() del panel de gestión y ejecutarla
+                // La IIFE del panel debe estar expuesta globalmente o aquí la llamamos
+                const listEl = document.getElementById('m-lines-list');
+                if(listEl){
+                    // Disparar evento de storage para que el listener del panel se active
+                    window.dispatchEvent(new StorageEvent('storage', {key: 'pk_lines', newValue: localStorage.getItem('pk_lines')}));
+                    console.log('✅ [SINCRONIZACIÓN GLOBAL] Evento de storage disparado para panel');
+                }
+            }catch(e){
+                console.error('❌ Error en sincronización global:', e);
+            }
+        };
+
+        // 🔥🟠 REGISTRAR LISTENER DE SOLICITUDES EN TIEMPO REAL (TITILADO)
+        console.log('%c🔥🟠 REGISTRANDO LISTENER DE SOLICITUDES...', 'background: orange; color: white; font-weight: bold; padding: 4px;');
+        
+        if(window.db){
+            console.log('✅ window.db disponible, registrando listener...');
+            console.log('🔗 Referencia:', window.db.ref('solicitudes').toString());
+            
+            window.db.ref('solicitudes').on('value', (snap) => {
+                console.log('%c🔔🟠 ¡¡¡ EVENTO DE SOLICITUDES RECIBIDO (TITILADO) !!!', 'background: orange; color: white; font-weight: bold; padding: 8px; font-size: 16px;');
+                const firebaseSolicitudes = snap.val() || {};
+                console.log('📥 Solicitudes de Firebase:', firebaseSolicitudes);
+                
+                if(!firebaseSolicitudes || Object.keys(firebaseSolicitudes).length === 0){
+                    console.log('⚪ Firebase NO tiene solicitudes - limpiando todo el titilado');
+                }
+                
+                // Convertir solicitudes de Firebase a pk_requested
+                const pk_requested = {};
+                
+                Object.keys(firebaseSolicitudes).forEach(lineName => {
+                    const lineData = firebaseSolicitudes[lineName];
+                    if(lineData && typeof lineData === 'object'){
+                        pk_requested[lineName] = Object.keys(lineData)
+                            .filter(key => lineData[key] && lineData[key].requestedAt)
+                            .map(key => parseInt(key));
+                    }
+                });
+                
+                console.log('🟠 pk_requested construido:', pk_requested);
+                
+                try { 
+                    localStorage.setItem('pk_requested', JSON.stringify(pk_requested)); 
+                } catch(e) { 
+                    console.warn('localStorage no disponible'); 
+                }
+                
+                // 🟠🎯 APLICAR TITILADO AL DOM
+                const columns = document.querySelectorAll('.container > .column');
+                let totalActivado = 0;
+                let totalDesactivado = 0;
+                
+                columns.forEach(col => {
+                    try{
+                        const lineName = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                        const blocks = Array.from(col.querySelectorAll('.block'));
+                        const requestedIndices = pk_requested[lineName] || [];
+                        
+                        blocks.forEach((block, idx) => {
+                            if(!block.hasAttribute('data-index')){
+                                block.setAttribute('data-index', String(idx));
+                            }
+                            if(!block.hasAttribute('data-line')){
+                                block.setAttribute('data-line', lineName);
+                            }
+                            
+                            const blockIdx = parseInt(block.getAttribute('data-index') || idx, 10);
+                            
+                            if(requestedIndices.includes(blockIdx)) {
+                                if(!block.classList.contains('requested')){
+                                    block.classList.add('requested');
+                                    console.log(`✨🟠 TITILADO ACTIVADO: ${lineName}[${blockIdx}]`);
+                                    totalActivado++;
+                                }
+                            } else {
+                                if(block.classList.contains('requested')){
+                                    block.classList.remove('requested');
+                                    console.log(`🔇 TITILADO DESACTIVADO: ${lineName}[${blockIdx}]`);
+                                    totalDesactivado++;
+                                }
+                            }
+                        });
+                    }catch(e){
+                        console.warn('Error procesando columna para titilado:', e);
+                    }
+                });
+                
+                console.log(`✅ Titilado sincronizado: ${totalActivado} activados, ${totalDesactivado} desactivados`);
+            }, (error) => {
+                console.error('❌ ERROR EN LISTENER DE SOLICITUDES:', error);
+            });
+            
+            console.log('✅✅ LISTENER DE SOLICITUDES REGISTRADO CORRECTAMENTE');
+            
+            // 🔵📦 REGISTRAR LISTENER DE KANBAN_ESTADO (ABASTECIMIENTO EN TIEMPO REAL)
+            console.log('%c🔵📦 REGISTRANDO LISTENER DE KANBAN_ESTADO...', 'background: blue; color: white; font-weight: bold; padding: 4px;');
+            
+            // 🔍 RASTREAR LÍNEAS VACÍAS
+            let emptyLineStates = {}; // { lineName: boolean } para rastrear si está vacía
+            
+            window.db.ref('kanban_estado').on('value', (snap) => {
+                console.log('%c🔔🔵 ¡¡¡ EVENTO DE KANBAN_ESTADO RECIBIDO (ABASTECIMIENTO) !!!', 'background: blue; color: white; font-weight: bold; padding: 8px; font-size: 16px;');
+                const firebaseKanban = snap.val() || {};
+                console.log('📥 Kanban de Firebase:', firebaseKanban);
+                
+                if(!firebaseKanban || Object.keys(firebaseKanban).length === 0){
+                    console.log('⚪ Firebase no tiene datos de kanban');
+                    return;
+                }
+                
+                // Convertir objetos a arrays (Firebase convierte arrays en objetos)
+                const convertToArray = (obj) => {
+                    if(!obj) return [];
+                    if(Array.isArray(obj)) return obj;
+                    const keys = Object.keys(obj).sort((a, b) => parseInt(a) - parseInt(b));
+                    return keys.map(k => obj[k]);
+                };
+                
+                // Aplicar cambios al DOM
+                Object.keys(firebaseKanban).forEach(lineName => {
+                    try{
+                        const col = findColumn(lineName);
+                        if(!col) {
+                            console.warn(`Columna ${lineName} no encontrada`);
+                            return;
+                        }
+                        
+                        const firebaseParciales = convertToArray(firebaseKanban[lineName]);
+                        const domBlocks = Array.from(col.querySelectorAll('.block'));
+                        
+                        console.log(`📊 ${lineName}: Firebase=${firebaseParciales.length}, DOM=${domBlocks.length}`);
+                        
+                        // 🔍 DETECTAR CAMBIO DE ESTADO VACÍO
+                        const wasEmpty = emptyLineStates[lineName] || false;
+                        const isEmpty = firebaseParciales.length === 0;
+                        
+                        if(wasEmpty !== isEmpty){
+                            emptyLineStates[lineName] = isEmpty;
+                            if(isEmpty){
+                                console.log(`🟡 LÍNEA VACÍA DETECTADA: ${lineName}`);
+                            } else {
+                                console.log(`🟢 LÍNEA CON PARCIALES: ${lineName}`);
+                            }
+                            // Aquí se podría agregar lógica adicional si se necesita
+                        }
+                        
+                        // Si Firebase tiene menos parciales, eliminar del DOM
+                        if(firebaseParciales.length < domBlocks.length){
+                            const toRemove = domBlocks.length - firebaseParciales.length;
+                            console.log(`🗑️ Eliminando ${toRemove} parcial(es) de ${lineName}`);
+                            
+                            for(let i = 0; i < toRemove; i++){
+                                const lastBlock = domBlocks[domBlocks.length - 1 - i];
+                                if(lastBlock && lastBlock.parentNode){
+                                    lastBlock.classList.add('removing');
+                                    setTimeout(() => {
+                                        try{ lastBlock.parentNode.removeChild(lastBlock); }catch(e){}
+                                    }, 200);
+                                }
+                            }
+                        }
+                        
+                        // Si Firebase tiene más parciales, agregar al DOM
+                        else if(firebaseParciales.length > domBlocks.length){
+                            const toAdd = firebaseParciales.length - domBlocks.length;
+                            console.log(`➕ Agregando ${toAdd} parcial(es) a ${lineName}`);
+                            
+                            for(let i = domBlocks.length; i < firebaseParciales.length; i++){
+                                const parcialName = firebaseParciales[i];
+                                const block = document.createElement('div');
+                                block.className = 'block appear';
+                                block.setAttribute('data-line', lineName);
+                                block.setAttribute('data-index', String(i));
+                                block.setAttribute('data-name', parcialName);
+                                
+                                const label = document.createElement('span');
+                                label.className = 'label';
+                                label.textContent = parcialName;
+                                block.appendChild(label);
+                                
+                                col.appendChild(block);
+                                
+                                setTimeout(() => {
+                                    block.classList.remove('appear');
+                                }, 420);
+                            }
+                        }
+                        
+                        // Actualizar nombres de parciales existentes
+                        const updatedBlocks = Array.from(col.querySelectorAll('.block'));
+                        updatedBlocks.forEach((block, idx) => {
+                            if(idx < firebaseParciales.length){
+                                const parcialName = firebaseParciales[idx];
+                                block.setAttribute('data-name', parcialName);
+                                block.setAttribute('data-index', String(idx));
+                                
+                                let label = block.querySelector('.label');
+                                if(!label){
+                                    label = document.createElement('span');
+                                    label.className = 'label';
+                                    block.appendChild(label);
+                                }
+                                label.textContent = parcialName;
+                            }
+                        });
+                        
+                    }catch(e){
+                        console.warn(`Error procesando línea ${lineName}:`, e);
+                    }
+                });
+                
+                // Actualizar contadores y UI
+                try{ checkEmptyLines(); }catch(e){}
+                try{ setupBlockSelection(); }catch(e){}
+                
+                console.log('✅ Kanban sincronizado desde Firebase');
+            }, (error) => {
+                console.error('❌ ERROR EN LISTENER DE KANBAN_ESTADO:', error);
+            });
+            
+            console.log('✅✅ LISTENER DE KANBAN_ESTADO REGISTRADO CORRECTAMENTE');
+            
+            // 🟢🆕 DETECTAR LÍNEAS NUEVAS O ELIMINADAS (child_added / child_removed)
+            console.log('%c🟢🆕 REGISTRANDO LISTENERS DE LÍNEAS NUEVAS/ELIMINADAS...', 'background: green; color: white; font-weight: bold; padding: 4px;');
+            
+            // Listener cuando se AGREGA una línea nueva
+            // NOTA: Este evento también se dispara en la carga inicial para cada línea existente
+            let initialLoadComplete = false;
+            setTimeout(() => { initialLoadComplete = true; }, 3000); // Después de 3s, considerar carga inicial completa
+            
+            window.db.ref('kanban_estado').on('child_added', (snap) => {
+                const lineName = snap.key;
+                const parciales = snap.val() || [];
+                
+                // Verificar si la línea ya existe en el DOM
+                const existingCol = findColumn(lineName);
+                if(existingCol){
+                    // La línea ya existe, no hacer nada
+                    return;
+                }
+                
+                // Solo crear la línea si NO es parte de la carga inicial
+                if(!initialLoadComplete){
+                    console.log(`⚪ Carga inicial: línea ${lineName} ignorada (ya debería existir)`);
+                    return;
+                }
+                
+                console.log(`🟢🆕 NUEVA LÍNEA DETECTADA EN FIREBASE: ${lineName}`);
+                
+                console.log(`➕ CREANDO NUEVA LÍNEA EN DOM: ${lineName}`);
+                
+                // Crear la nueva columna en el DOM
+                try{
+                    const container = document.querySelector('.container');
+                    if(!container) return;
+                    
+                    const newCol = document.createElement('div');
+                    newCol.className = 'column';
+                    newCol.setAttribute('data-line', lineName);
+                    
+                    // Header
+                    const header = document.createElement('div');
+                    header.className = 'column-header';
+                    header.textContent = lineName;
+                    newCol.appendChild(header);
+                    
+                    // Timer
+                    const timer = document.createElement('div');
+                    timer.className = 'sol-timer';
+                    newCol.appendChild(timer);
+                    
+                    // Agregar parciales si existen
+                    const convertToArray = (obj) => {
+                        if(!obj) return [];
+                        if(Array.isArray(obj)) return obj;
+                        const keys = Object.keys(obj).sort((a, b) => parseInt(a) - parseInt(b));
+                        return keys.map(k => obj[k]);
+                    };
+                    
+                    const parcialesArray = convertToArray(parciales);
+                    parcialesArray.forEach((parcialName, idx) => {
+                        const block = document.createElement('div');
+                        block.className = 'block appear';
+                        block.setAttribute('data-line', lineName);
+                        block.setAttribute('data-index', String(idx));
+                        block.setAttribute('data-name', parcialName);
+                        
+                        const label = document.createElement('span');
+                        label.className = 'label';
+                        label.textContent = parcialName;
+                        block.appendChild(label);
+                        
+                        newCol.appendChild(block);
+                        
+                        setTimeout(() => block.classList.remove('appear'), 420);
+                    });
+                    
+                    // Agregar al container
+                    container.appendChild(newCol);
+                    
+                    // Actualizar localStorage
+                    try{
+                        let lines = JSON.parse(localStorage.getItem('pk_lines') || '[]');
+                        if(!lines.find(l => l.name === lineName)){
+                            lines.push({ name: lineName, count: parcialesArray.length, active: true });
+                            localStorage.setItem('pk_lines', JSON.stringify(lines));
+                        }
+                    }catch(e){}
+                    
+                    // Actualizar UI
+                    try{ setupBlockSelection(); }catch(e){}
+                    try{ populateDatalist(); }catch(e){}
+                    
+                    console.log(`✅ Nueva línea ${lineName} creada en DOM con ${parcialesArray.length} parcial(es)`);
+                    
+                }catch(e){
+                    console.error(`Error creando línea ${lineName}:`, e);
+                }
+            });
+            
+            // 🚫 NO ELIMINAR AUTOMÁTICAMENTE - Las líneas vacías deben permanecer
+            // La única forma de eliminar líneas es manualmente desde "GESTIÓN LÍNEAS"
+            console.log('ℹ️ Las líneas vacías NO se eliminarán automáticamente');
+            console.log('ℹ️ Para eliminar líneas, usa el botón "GESTIÓN LÍNEAS"');
+            
+            console.log('✅✅ LISTENERS DE LÍNEAS NUEVAS/ELIMINADAS REGISTRADOS');
+            
+            // 🔄 LISTENER DE ORDEN DE LÍNEAS - Sincronización en tiempo real
+            console.log('%c🔄 REGISTRANDO LISTENER DE ORDEN DE LÍNEAS...', 'background: purple; color: white; font-weight: bold; padding: 4px;');
+            
+            window.db.ref('line_order').on('value', (snap) => {
+                const orderData = snap.val();
+                console.log('🔄 [LISTENER line_order] DISPARADO - Valor:', orderData);
+                
+                if(!orderData){
+                    console.log('⚪ line_order no existe, saltando...');
+                    return;
+                }
+                
+                // Extraer el array de líneas (puede ser array directo o dentro de objeto con timestamp)
+                let lineOrder = Array.isArray(orderData) ? orderData : (orderData.lines || []);
+                
+                if(!Array.isArray(lineOrder) || lineOrder.length === 0){
+                    console.log('⚪ line_order no es array válido, saltando...');
+                    return;
+                }
+                
+                console.log('%c🔴 ORDEN DE LÍNEAS ACTUALIZADO EN FIREBASE:', 'background: red; color: white; font-weight: bold; padding: 8px;', lineOrder);
+                
+                // Actualizar localStorage pk_lines con el nuevo orden
+                try{
+                    let lines = JSON.parse(localStorage.getItem('pk_lines') || '[]');
+                    if(lines.length === 0) lines = lineOrder.map(name => ({name, active: true, count: 0}));
+                    
+                    // Reordenar el array de líneas según lineOrder
+                    const lineMap = {};
+                    lines.forEach(line => {
+                        lineMap[line.name] = line;
+                    });
+                    
+                    const reorderedLines = lineOrder.map(name => lineMap[name] || {name, active: true, count: 0});
+                    localStorage.setItem('pk_lines', JSON.stringify(reorderedLines));
+                    console.log('✅ localStorage pk_lines ACTUALIZADO con nuevo orden:', reorderedLines.map(l => l.name));
+                    
+                    // Disparar evento de storage para que el panel se actualice
+                    window.dispatchEvent(new StorageEvent('storage', {key: 'pk_lines'}));
+                    
+                    // También llamar la función global de sincronización
+                    if(window.syncManagePanelFromFirebase) window.syncManagePanelFromFirebase();
+                }catch(e){
+                    console.error('❌ Error actualizando localStorage desde Firebase:', e);
+                }
+                
+                // Aplicar orden al kanban
+                try{
+                    const container = document.querySelector('.container');
+                    if(!container) return;
+                    
+                    // Crear mapa de columnas por nombre
+                    const columnMap = {};
+                    const columns = Array.from(container.querySelectorAll('.column'));
+                    columns.forEach(col => {
+                        const header = col.querySelector('.column-header');
+                        if(header){
+                            const name = header.textContent.trim();
+                            columnMap[name] = col;
+                        }
+                    });
+                    
+                    // Reordenar según lineOrder
+                    lineOrder.forEach(lineName => {
+                        const col = columnMap[lineName];
+                        if(col){
+                            container.appendChild(col); // mueve al final en orden
+                        }
+                    });
+                    
+                    console.log('✅ ORDEN DE COLUMNAS APLICADO AL KANBAN:', lineOrder);
+                }catch(e){
+                    console.error('❌ Error aplicando orden al kanban:', e);
+                }
+            });
+            
+            console.log('✅ LISTENER DE ORDEN DE LÍNEAS REGISTRADO');
+            
+            // 🔄 LISTENER DE ESTRUCTURA DE LÍNEAS - Sincronizar cambios en nombres y estado
+            console.log('%c📝 REGISTRANDO LISTENER DE ESTRUCTURA DE LÍNEAS...', 'background: #FF6B6B; color: white; font-weight: bold; padding: 4px;');
+            
+            window.db.ref('line_structure').on('value', (snap) => {
+                const structure = snap.val();
+                if(!structure || !Array.isArray(structure)){
+                    console.log('⚪ line_structure no existe o no es array, saltando...');
+                    return;
+                }
+                
+                console.log('🔄 ESTRUCTURA DE LÍNEAS ACTUALIZADA EN FIREBASE:', structure);
+                
+                // Actualizar localStorage
+                try{
+                    const lines = JSON.parse(localStorage.getItem('pk_lines') || '[]');
+                    
+                    // Verificar si hay cambios
+                    let hasChanges = false;
+                    
+                    // Sincronizar nombres y estados
+                    structure.forEach((newLine, idx) => {
+                        if(!lines[idx] || lines[idx].name !== newLine.name || lines[idx].active !== newLine.active){
+                            if(!lines[idx]) lines[idx] = {};
+                            const oldName = lines[idx].name;
+                            lines[idx].name = newLine.name;
+                            lines[idx].active = newLine.active;
+                            hasChanges = true;
+                            
+                            // Renombrar columna en DOM si el nombre cambió
+                            if(oldName && oldName !== newLine.name){
+                                try{
+                                    const col = document.querySelector(`[data-line="${oldName}"]`)?.closest('.column');
+                                    if(col){
+                                        const header = col.querySelector('.column-header');
+                                        if(header) header.textContent = newLine.name;
+                                        col.setAttribute('data-line', newLine.name);
+                                        
+                                        // Actualizar todos los blocks en esa columna
+                                        col.querySelectorAll('.block').forEach(block => {
+                                            block.setAttribute('data-line', newLine.name);
+                                        });
+                                    }
+                                }catch(e){console.error('Error renombrando columna:', e);}
+                            }
+                        }
+                    });
+                    
+                    // Eliminar líneas que no existen en la estructura
+                    if(lines.length > structure.length){
+                        lines.splice(structure.length);
+                        hasChanges = true;
+                    }
+                    
+                    if(hasChanges){
+                        localStorage.setItem('pk_lines', JSON.stringify(lines));
+                        console.log('✅ ESTRUCTURA SINCRONIZADA EN LOCAL:', lines);
+                        
+                        // Disparar evento de storage para que otros listeners se actualicen
+                        window.dispatchEvent(new StorageEvent('storage', {key: 'pk_lines'}));
+                        
+                        // También llamar la función global de sincronización
+                        if(window.syncManagePanelFromFirebase) window.syncManagePanelFromFirebase();
+                    }
+                }catch(e){
+                    console.error('❌ Error sincronizando estructura local:', e);
+                }
+            });
+            
+            console.log('✅ LISTENER DE ESTRUCTURA DE LÍNEAS REGISTRADO');
+            
+            // 🟣 REGISTRANDO LISTENER DE TIMESTAMPS DE SOLICITUD (PARA SINCRONIZACIÓN EN TIEMPO REAL)
+            console.log('%c⏱️ REGISTRANDO LISTENER DE SOLICITUD_TIMES...', 'background: #9C27B0; color: white; font-weight: bold; padding: 4px;');
+            
+            window.db.ref('solicitud_times').on('value', (snap) => {
+                try{
+                    const timesData = snap.val() || {};
+                    console.log('%c⏱️ EVENTO FIREBASE solicitud_times:', 'background: #9C27B0; color: white; font-weight: bold;', timesData);
+                    
+                    // 🔥 ACTUALIZAR CACHE GLOBAL CON NUEVOS TIMESTAMPS
+                    window.firebaseTimestampsCache = timesData;
+                    console.log('%c✅ Cache de timestamps actualizado:', 'background: #4CAF50; color: white;', window.firebaseTimestampsCache);
+                    
+                    // Guardar también en localStorage como respaldo
+                    localStorage.setItem('solicitud_times_firebase', JSON.stringify(timesData));
+                    
+                    // Actualizar timers inmediatamente
+                    setTimeout(() => {
+                        try{ 
+                            console.log('%c⏱️ Actualizando timers por cambio en Firebase...', 'background: #9C27B0; color: white;');
+                            window.updateColumnTimers(); 
+                        }catch(e){ 
+                            console.error('%c❌ ERROR CALLING updateColumnTimers:', 'background: #FF6B6B; color: white;', e); 
+                        }
+                    }, 10);
+                    
+                }catch(e){
+                    console.error('%c❌ Error procesando solicitud_times:', 'background: #FF6B6B; color: white;', e);
+                }
+            });
+            
+            // 📱 ESCUCHAR CAMBIOS EN localStorage DESDE OTRAS PESTAÑAS (para sincronización más rápida)
+            window.addEventListener('storage', (event) => {
+                if(event.key === 'solicitud_times_firebase'){
+                    try{
+                        console.log('%c📲 CAMBIO DE OTRA PESTAÑA DETECTADO - solicitud_times_firebase:', 'background: #FF9800; color: white;', event.newValue);
+                        const timesData = JSON.parse(event.newValue || '{}');
+                        window.firebaseTimestampsCache = timesData;
+                        setTimeout(() => {
+                            try{ 
+                                console.log('%c⏱️ Actualizando timers por cambio desde otra pestaña...', 'background: #FF9800; color: white;');
+                                window.updateColumnTimers(); 
+                            }catch(e){ 
+                                console.error('%c❌ ERROR CALLING updateColumnTimers:', 'background: #FF6B6B; color: white;', e); 
+                            }
+                        }, 0);
+                    }catch(e){
+                        console.error('%c❌ Error en storage event listener:', 'background: #FF6B6B; color: white;', e);
+                    }
+                }
+            });
+            
+            console.log('✅ LISTENER DE SOLICITUD_TIMES REGISTRADO');
+            
+            // 🔄 SINCRONIZACIÓN PERIÓDICA DESDE FIREBASE (cada 800ms) PARA ASEGURAR QUE TODAS LAS PESTAÑAS ESTÉN SINCRONIZADAS
+            console.log('%c⏱️ INICIANDO SINCRONIZACIÓN PERIÓDICA DESDE FIREBASE...', 'background: #00BCD4; color: white; font-weight: bold;');
+            window._syncFromFirebaseInterval = setInterval(() => {
+                if(!window.db) return;
+                try{
+                    window.db.ref('solicitud_times').once('value', (snap) => {
+                        const timesData = snap.val() || {};
+                        const cacheStr = JSON.stringify(window.firebaseTimestampsCache || {});
+                        const firebaseStr = JSON.stringify(timesData);
+                        
+                        if(cacheStr !== firebaseStr){
+                            console.log('%c🔄 SINCRONIZACIÓN PERIÓDICA DETECTÓ CAMBIOS:', 'background: #00BCD4; color: white;', timesData);
+                            window.firebaseTimestampsCache = timesData;
+                            localStorage.setItem('solicitud_times_firebase', JSON.stringify(timesData));
+                            
+                            // Actualizar timers inmediatamente
+                            try{ 
+                                window.updateColumnTimers(); 
+                            }catch(e){ 
+                                console.error('%c❌ ERROR CALLING updateColumnTimers:', 'background: #FF6B6B; color: white;', e); 
+                            }
+                        }
+                    });
+                }catch(e){
+                    console.error('%c❌ Error en sincronización periódica:', 'background: #FF6B6B; color: white;', e);
+                }
+            }, 800);
+            
+            console.log('✅ SINCRONIZACIÓN PERIÓDICA INICIADA - Intervalo cada 800ms');
+            
+            // 🎯 INICIALIZAR ORDEN DE LÍNEAS SI NO EXISTE
+            window.db.ref('line_order').once('value').then((snap) => {
+                if(!snap.exists()){
+                    console.log('📝 Inicializando orden de líneas desde DOM...');
+                    const columns = Array.from(document.querySelectorAll('.container > .column'));
+                    const lineNames = columns.map(col => {
+                        const header = col.querySelector('.column-header');
+                        return header ? header.textContent.trim() : '';
+                    }).filter(name => name);
+                    
+                    if(lineNames.length > 0){
+                        window.db.ref('line_order').set(lineNames).then(() => {
+                            console.log('✅ ORDEN INICIAL DE LÍNEAS GUARDADO EN FIREBASE:', lineNames);
+                        });
+                    }
+                }else{
+                    console.log('✅ Orden de líneas ya existe en Firebase');
+                }
+            });
+            
+        } else {
+            console.error('❌❌❌ window.db NO DISPONIBLE - esperando inicialización...');
+            // Reintentar después de que Firebase se inicialice
+            if(window.firebaseInitPromise){
+                window.firebaseInitPromise.then(() => {
+                    console.log('🔄 Reintentando registro de listener después de inicialización...');
+                    if(window.db){
+                        window.db.ref('solicitudes').on('value', (snap) => {
+                            console.log('🔔🟠 EVENTO DE SOLICITUDES (reintento)');
+                            // ... mismo código de arriba ...
+                        });
+                        console.log('✅ Listener registrado en reintento');
+                    }
+                }).catch(e => console.error('Error en reintento:', e));
+            }
+        }
 
     });
     </script>
-    <!-- Firebase removed -->
-    <script>
-    </script>
-
-            <script>
-            (function(){
-        // Firebase removed - Local storage only
-        console.log('Local storage mode enabled');
-        try{
-            window.saveState = function(){
-                try{ if(typeof originalSave === 'function') originalSave(); }catch(e){ console.warn('original saveState failed', e); }
-                try{ window.saveStateToRemote(); }catch(e){ console.warn('saveStateToRemote failed', e); }
-            };
-        }catch(e){ console.warn('hook saveState failed', e); }
-
-        try{
-            const originalSaveReq = window.saveRequestedMap;
-            window.saveRequestedMap = function(map){
-                try{ if(typeof originalSaveReq === 'function') originalSaveReq(map); }catch(e){ console.warn('original saveRequestedMap failed', e); }
-                try{ saveStateToRemoteDebounced({ pk_requested: map || JSON.parse(localStorage.getItem('pk_requested')||'{}') }); }catch(e){ console.warn('remote saveRequestedMap failed', e); }
-            };
-        }catch(e){ console.warn('hook saveRequestedMap failed', e); }
-
-        console.log('App initialized (Firebase removed).');
-    })();
-    </script>
+    <!-- Firebase: modo removido eliminado para forzar sincronización en tiempo real -->
 
     <script>
     // Renderizador de historial: consume objetos devueltos por Firestore
@@ -2362,21 +3504,167 @@
                     console.log('✅ Firebase inicializado');
                 }
                 
+                // 🟠 LISTENER DE SOLICITUDES EN TIEMPO REAL (DIRECTO) - REGISTRAR LO MÁS PRONTO POSIBLE
+                if(window.db) {
+                    console.log('🟠 Registrando listener de solicitudes DIRECTO...');
+                    window.db.ref('solicitudes').on('value', (snap) => {
+                        console.log('🔔 ¡¡¡ EVENTO DE SOLICITUDES RECIBIDO !!!');
+                        const firebaseSolicitudes = snap.val() || {};
+                        console.log('📥 Solicitudes de Firebase:', firebaseSolicitudes);
+                        
+                        // 🟠 ACTUALIZAR VISUALMENTE LOS BLOQUES CON ESTADO "REQUESTED"
+                        Object.keys(firebaseSolicitudes || {}).forEach(lineName => {
+                            const lineData = firebaseSolicitudes[lineName] || {};
+                            const indices = Object.keys(lineData)
+                                .filter(key => lineData[key] && lineData[key].requestedAt)
+                                .map(key => parseInt(key));
+                            
+                            console.log(`🟠 Línea ${lineName}: índices solicitados =`, indices);
+                            
+                            const blocks = Array.from(document.querySelectorAll(`[data-line="${lineName}"].block`));
+                            blocks.forEach((block, idx) => {
+                                if(indices.includes(idx)) {
+                                    block.classList.add('requested');
+                                    console.log(`🟠 TITILANDO: ${lineName}[${idx}]`);
+                                } else {
+                                    block.classList.remove('requested');
+                                }
+                            });
+                        });
+                        
+                        // Limpiar bloques que ya no están solicitados
+                        const allBlocks = Array.from(document.querySelectorAll('.block.requested'));
+                        allBlocks.forEach(block => {
+                            const lineName = block.getAttribute('data-line');
+                            const idx = parseInt(block.getAttribute('data-index') || '-1', 10);
+                            
+                            if(!firebaseSolicitudes[lineName] || !firebaseSolicitudes[lineName][idx]) {
+                                block.classList.remove('requested');
+                                console.log(`🗑️ Ya no solicitado: ${lineName}[${idx}]`);
+                            }
+                        });
+                        
+                        console.log('✅ Estados de solicitud sincronizados');
+                    });
+                    console.log('✅ Listener de solicitudes registrado');
+                }
+                
                 // Cargar datos iniciales
                 if(typeof loadAllDataFromFirebase === 'function'){
                     await loadAllDataFromFirebase();
                     console.log('✅ Datos cargados desde Firebase');
                 }
                 
-                // Iniciar listeners en tiempo real
-                if(typeof initFirebaseSync === 'function'){
-                    await initFirebaseSync();
-                    console.log('✅ Listeners de Firebase inicializados');
+                // 🔥🟠 REGISTRAR LISTENER DE SOLICITUDES EN TIEMPO REAL (TITILADO)
+                console.log('🚀🚀🚀 REGISTRANDO LISTENER DE SOLICITUDES (inline)...');
+                if(window.db){
+                    console.log('🔗 Referencia de solicitudes:', window.db.ref('solicitudes').toString());
+                    
+                    window.db.ref('solicitudes').on('value', (snap) => {
+                        console.log('🔔🟠🔔🟠🔔 ¡¡¡ EVENTO DE SOLICITUDES RECIBIDO (TITILADO) !!!');
+                        const firebaseSolicitudes = snap.val() || {};
+                        console.log('📥 Solicitudes de Firebase:', firebaseSolicitudes);
+                        
+                        try { 
+                            localStorage.setItem('json_solicitudes', JSON.stringify(firebaseSolicitudes, null, 2)); 
+                        } catch(e) { 
+                            console.warn('localStorage no disponible'); 
+                        }
+                        
+                        // Convertir solicitudes de Firebase a pk_requested
+                        const pk_requested = {};
+                        
+                        Object.keys(firebaseSolicitudes).forEach(lineName => {
+                            const lineData = firebaseSolicitudes[lineName];
+                            if(lineData && typeof lineData === 'object'){
+                                pk_requested[lineName] = Object.keys(lineData)
+                                    .filter(key => lineData[key] && lineData[key].requestedAt)
+                                    .map(key => parseInt(key));
+                            }
+                        });
+                        
+                        console.log('🟠 pk_requested construido:', pk_requested);
+                        
+                        try { 
+                            localStorage.setItem('pk_requested', JSON.stringify(pk_requested)); 
+                        } catch(e) { 
+                            console.warn('localStorage no disponible'); 
+                        }
+                        
+                        // 🟠🎯 APLICAR TITILADO AL DOM
+                        const columns = document.querySelectorAll('.container > .column');
+                        columns.forEach(col => {
+                            try{
+                                const lineName = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                                const blocks = Array.from(col.querySelectorAll('.block'));
+                                const requestedIndices = pk_requested[lineName] || [];
+                                
+                                console.log(`📋 Línea: ${lineName}, Indices solicitados: [${requestedIndices.join(', ')}]`);
+                                
+                                blocks.forEach((block, idx) => {
+                                    if(!block.hasAttribute('data-index')){
+                                        block.setAttribute('data-index', String(idx));
+                                    }
+                                    if(!block.hasAttribute('data-line')){
+                                        block.setAttribute('data-line', lineName);
+                                    }
+                                    
+                                    const blockIdx = parseInt(block.getAttribute('data-index') || idx, 10);
+                                    
+                                    if(requestedIndices.includes(blockIdx)) {
+                                        if(!block.classList.contains('requested')){
+                                            block.classList.add('requested');
+                                            console.log(`✨🟠 TITILADO ACTIVADO: ${lineName}[${blockIdx}]`);
+                                        }
+                                    } else {
+                                        if(block.classList.contains('requested')){
+                                            block.classList.remove('requested');
+                                            console.log(`🔇 TITILADO DESACTIVADO: ${lineName}[${blockIdx}]`);
+                                        }
+                                    }
+                                });
+                            }catch(e){
+                                console.warn('Error procesando columna para titilado:', e);
+                            }
+                        });
+                        
+                        console.log('✅ Titilado sincronizado desde Firebase');
+                    }, (error) => {
+                        console.error('❌ ERROR EN LISTENER DE SOLICITUDES:', error);
+                    });
+                    
+                    console.log('✅✅ LISTENER DE SOLICITUDES REGISTRADO CORRECTAMENTE');
+                } else {
+                    console.error('❌❌❌ window.db NO DISPONIBLE - no se puede registrar listener');
                 }
+                
+                // ⚡ CARGA INICIAL FORZADA - Esperar 1 segundo para que los listeners se registren
+                setTimeout(async () => {
+                    console.log('⚡ Ejecutando carga inicial forzada de Firebase...');
+                    try {
+                        const snapshot = await window.db.ref('kanban_estado').once('value');
+                        const firebaseKanban = snapshot.val() || {};
+                        
+                        if(Object.keys(firebaseKanban).length > 0) {
+                            console.log('📥 Datos encontrados en Firebase:', firebaseKanban);
+                            console.log('🔄 Aplicando snapshot inicial...');
+                            if(typeof applyKanbanSnapshot === 'function') {
+                                applyKanbanSnapshot(firebaseKanban);
+                            }
+                        } else {
+                            console.log('⚠️ Firebase vacío');
+                        }
+                    } catch(e) {
+                        console.error('❌ Error en carga inicial:', e);
+                    }
+                }, 1000);
+                
             } catch(e) {
                 console.error('❌ Error inicializando Firebase:', e);
             }
         })();
+        
+        // Botón de prueba de sincronización eliminado
     });
     </script>
 
@@ -2528,12 +3816,31 @@
             const panel = document.getElementById('manage-panel');
             const closeBtn = document.getElementById('m-btn-close');
             if(!btn || !panel) return;
-            function openPanel(){ panel.classList.add('open'); panel.setAttribute('aria-hidden','false'); }
-            function closePanel(){ panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); }
+            
+            // 🔐 FLAG PARA CONTROLAR SI SE PUEDE CERRAR
+            window.managePanelSynced = false;
+            
+            function openPanel(){ 
+                panel.classList.add('open'); 
+                panel.setAttribute('aria-hidden','false');
+                window.managePanelSynced = false; // Reset al abrir
+                closeBtn.style.opacity = '0.5';
+                closeBtn.style.cursor = 'not-allowed';
+                closeBtn.title = 'Debes hacer clic en "Sincronizar" antes de cerrar';
+            }
+            function closePanel(){ 
+                // 🔐 VALIDAR SI ESTÁ SINCRONIZADO
+                if(!window.managePanelSynced){
+                    alert('⚠️ Debes hacer clic en "Sincronizar" antes de cerrar');
+                    return;
+                }
+                panel.classList.remove('open'); 
+                panel.setAttribute('aria-hidden','true');
+            }
             btn.addEventListener('click', ()=>{ openPanel(); });
             closeBtn && closeBtn.addEventListener('click', closePanel);
             // close on Escape
-            window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closePanel(); });
+            window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && window.managePanelSynced) closePanel(); });
         })();
     </script>
 
@@ -2705,8 +4012,8 @@
             const FLOATING_HISTORY_DRAGGABLE = false;
             // If you want this panel locked to an exact viewport position, set fixed coords here
             // (left, top) in pixels. Set to null to let positionHistory compute a place automatically.
-            // moved a bit higher as requested
-            const FLOATING_HISTORY_FIXED_POS = { left: 380, top: 10 };
+            // positioned between ABASTECER KAMBAN and ABASTECER AB buttons
+            const FLOATING_HISTORY_FIXED_POS = { left: 320, top: 70 };
             const key = 'pk_floating_history_pos';
                const el = document.getElementById('floating-history');
             if(!el) return;
@@ -2828,10 +4135,49 @@
                 try{ const rect = el.getBoundingClientRect(); const pad=8; const w=el.offsetWidth||300; const h=el.offsetHeight||150; let l = rect.left; let t = rect.top; if(l + w > window.innerWidth - pad) l = Math.max(pad, window.innerWidth - w - pad); if(t + h > window.innerHeight - pad) t = Math.max(pad, window.innerHeight - h - pad); el.style.left = l + 'px'; el.style.top = t + 'px'; }catch(e){}
             });
         })();
+    })();
     </script>
 
     <!-- Gestión: lógica embebida que reemplaza manage-lines.html -->
     <script>
+    // 🔄 FUNCIÓN GLOBAL PARA SINCRONIZAR LÍNEAS CON FIREBASE
+    window.syncLinesToFirebase = function(lines){
+        console.log('%c📤 [syncLinesToFirebase] GUARDANDO EN FIREBASE...', 'background: #FF9800; color: white; font-weight: bold; padding: 8px;', lines);
+        
+        if(!window.db) {
+            console.warn('❌ window.db no disponible para sincronizar');
+            return;
+        }
+        
+        // Guardar estructura: nombres y estado activo
+        const lineStructure = lines.map(l => ({
+            name: l.name,
+            active: l.active !== false
+        }));
+        
+        window.db.ref('line_structure').set(lineStructure).then(() => {
+            console.log('✅ ESTRUCTURA DE LÍNEAS SINCRONIZADA EN FIREBASE:', lineStructure);
+        }).catch(err => {
+            console.error('❌ Error sincronizando estructura:', err);
+        });
+        
+        // Guardar orden de líneas - CRÍTICO
+        const lineNames = lines.map(l => l.name);
+        console.log('%c🔄 GUARDANDO ORDEN EN FIREBASE:', 'background: purple; color: white; font-weight: bold;', lineNames);
+        
+        // Guardar con timestamp para forzar que el listener se dispare
+        const orderData = {
+            lines: lineNames,
+            timestamp: Date.now()
+        };
+        
+        window.db.ref('line_order').set(orderData).then(() => {
+            console.log('%c✅ ORDEN DE LÍNEAS GUARDADO EN FIREBASE:', 'background: green; color: white; font-weight: bold;', lineNames);
+        }).catch(err => {
+            console.error('❌ Error guardando orden:', err);
+        });
+    };
+
     (function(){
         const STORAGE_KEY = 'pk_lines';
         const listEl = document.getElementById('m-lines-list');
@@ -2867,6 +4213,8 @@
         function save(lines){
             try{
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+                // 🔄 GUARDAR NOMBRES Y ESTRUCTURA EN FIREBASE
+                syncLinesToFirebase(lines);
                 return true;
             }catch(e){ console.error(e); return false; }
         }
@@ -2875,7 +4223,56 @@
             const lines = load();
             listEl.innerHTML = '';
             lines.forEach((l,idx)=>{
-                const row = document.createElement('div'); row.className = 'manage-item';
+                const row = document.createElement('div'); 
+                row.className = 'manage-item';
+                row.draggable = true; // 🎯 HACER DRAGGABLE
+                row.dataset.index = idx; // guardar índice para reordenar
+                row.style.cursor = 'grab';
+                
+                // 🎨 Event handlers para drag & drop
+                row.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', idx);
+                    row.style.opacity = '0.4';
+                    row.style.cursor = 'grabbing';
+                });
+                
+                row.addEventListener('dragend', (e) => {
+                    row.style.opacity = '1';
+                    row.style.cursor = 'grab';
+                });
+                
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    // highlight drop zone
+                    row.style.borderTop = '2px solid #4CAF50';
+                });
+                
+                row.addEventListener('dragleave', (e) => {
+                    row.style.borderTop = '';
+                });
+                
+                row.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    row.style.borderTop = '';
+                    
+                    const draggedIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                    const targetIdx = parseInt(row.dataset.index, 10);
+                    
+                    if(draggedIdx !== targetIdx){
+                        // reordenar array
+                        const lines = load();
+                        const [movedItem] = lines.splice(draggedIdx, 1);
+                        lines.splice(targetIdx, 0, movedItem);
+                        save(lines); // ✅ Auto-guarda en Firebase al reordenar
+                        render();
+                        
+                        window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY}));
+                        console.log('✅ LÍNEAS REORDENADAS Y AUTO-GUARDADAS EN FIREBASE');
+                    }
+                });
+                
                 const name = document.createElement('input'); name.type='text'; name.value = l.name;
                 // mostrar la cantidad como texto (no editable)
                 const countSpan = document.createElement('div'); countSpan.style.minWidth = '48px'; countSpan.style.padding = '8px'; countSpan.style.borderRadius = '8px'; countSpan.style.background = 'rgba(0,0,0,0.03)'; countSpan.style.textAlign = 'center'; countSpan.textContent = String(l.count || 0);
@@ -2887,13 +4284,62 @@
                 chkActive.style.height = '18px';
                 chkActive.style.cursor = 'pointer';
                 const del = document.createElement('button'); del.className='btn btn-del'; del.textContent='Eliminar';
-                del.addEventListener('click', ()=>{ lines.splice(idx,1); save(lines); render(); window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY})); });
-                // update on change
-                name.addEventListener('change', ()=>{ lines[idx].name = name.value.trim() || ('PK'+(idx+1)); save(lines); render(); window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY})); });
+                del.addEventListener('click', ()=>{ 
+                    const deletedName = lines[idx].name;
+                    lines.splice(idx,1); 
+                    save(lines); // ✅ Auto-guarda en Firebase al eliminar
+                    render(); 
+                    window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY}));
+                    console.log(`✅ LÍNEA ELIMINADA Y AUTO-GUARDADA: ${deletedName}`);
+                });
+                // update on change - SINCRONIZAR NOMBRE EN TIEMPO REAL
+                name.addEventListener('change', ()=>{ 
+                    const oldName = lines[idx].name;
+                    const newName = name.value.trim() || ('PK'+(idx+1));
+                    
+                    if(oldName !== newName){
+                        lines[idx].name = newName;
+                        save(lines); // ✅ Auto-guarda en Firebase al cambiar nombre
+                        
+                        // 🔄 SINCRONIZAR RENOMBRADO EN kanban_estado
+                        if(window.db){
+                            window.db.ref('kanban_estado').once('value', (snapshot) => {
+                                const kanbanData = snapshot.val() || {};
+                                
+                                // Si existe la línea vieja en kanban_estado, renombrarla
+                                if(kanbanData[oldName]){
+                                    kanbanData[newName] = kanbanData[oldName];
+                                    delete kanbanData[oldName];
+                                    
+                                    // Guardar el cambio
+                                    window.db.ref('kanban_estado').set(kanbanData).then(() => {
+                                        console.log(`✅ LÍNEA RENOMBRADA EN KANBAN_ESTADO: ${oldName} → ${newName}`);
+                                    }).catch(err => {
+                                        console.error(`❌ Error renombrando en kanban_estado:`, err);
+                                    });
+                                }
+                            });
+                        }
+                        
+                        // Renombrar columna en DOM
+                        try{
+                            const col = document.querySelector(`[data-line="${oldName}"]`)?.closest('.column');
+                            if(col){
+                                const header = col.querySelector('.column-header');
+                                if(header) header.textContent = newName;
+                                col.setAttribute('data-line', newName);
+                            }
+                        }catch(e){}
+                        
+                        render();
+                        window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY}));
+                        console.log(`✅ LÍNEA RENOMBRADA Y AUTO-GUARDADA: ${oldName} → ${newName}`);
+                    }
+                });
                 // count is not editable from the manage UI per user request
                 chkActive.addEventListener('change', ()=>{
                     lines[idx].active = !!chkActive.checked;
-                    save(lines);
+                    save(lines); // ✅ Auto-guarda en Firebase al cambiar estado
                     render();
                     try{ if(window.applyLinesToDOM) window.applyLinesToDOM(lines); }catch(e){}
                     // if deactivating, remove timestamp
@@ -2905,6 +4351,7 @@
                         }catch(e){}
                     }
                     window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY}));
+                    console.log(`✅ ESTADO DE LÍNEA ACTUALIZADO Y AUTO-GUARDADO: ${lines[idx].name} = ${lines[idx].active}`);
                 });
                 row.appendChild(name); row.appendChild(countSpan); row.appendChild(chkActive); row.appendChild(del);
                 listEl.appendChild(row);
@@ -2919,11 +4366,20 @@
             if(!confirm(`¿Añadir nueva línea "${name}"?`)) return;
             const lines = load();
             lines.push({ name, count: defaultCount });
-            save(lines);
+            save(lines); // ✅ Auto-guarda en Firebase
             nameInput.value = '';
             render();
             // notify other tabs via storage event
             window.dispatchEvent(new StorageEvent('storage',{key:STORAGE_KEY}));
+            console.log('✅ NUEVA LÍNEA AÑADIDA Y AUTO-GUARDADA');
+        });
+        
+        // 🔄 LISTENER PARA SINCRONIZAR CAMBIOS DE pk_lines ENTRE PESTAÑAS
+        window.addEventListener('storage', (e) => {
+            if(e.key === STORAGE_KEY){
+                console.log('📝 CAMBIO EN pk_lines DETECTADO, RE-RENDERIZANDO PANEL...');
+                render(); // Re-renderizar el panel de gestión
+            }
         });
 
         // manejar botón "Solicitar parcial"
@@ -2969,7 +4425,30 @@
                             s.classList.remove('requested');
                             if(pos !== -1) arr.splice(pos,1);
                             removed++;
-                            // if no more requested for this line, we don't delete solicitud timestamp here (keep for history)
+                            
+                            // 🗑️ ELIMINAR DE FIREBASE CUANDO SE CANCELA
+                            (async () => {
+                                try{
+                                    if(window.db){
+                                        const solicitudRef = window.db.ref(`solicitudes/${lineName}/${idx}`);
+                                        await solicitudRef.remove();
+                                        console.log(`🗑️ SOLICITUD ELIMINADA DE FIREBASE: ${lineName}[${idx}]`);
+                                        
+                                        // 🟣 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES
+                                        await window.db.ref(`solicitud_times/${lineName}`).remove();
+                                        console.log(`⏱️ TIMESTAMP DE SOLICITUD ELIMINADO: ${lineName}`);
+                                        
+                                        // 🔄 ACTUALIZAR localStorage INMEDIATAMENTE
+                                        const currentTimes = JSON.parse(localStorage.getItem('solicitud_times_firebase')||'{}');
+                                        delete currentTimes[lineName];
+                                        localStorage.setItem('solicitud_times_firebase', JSON.stringify(currentTimes));
+                                        console.log(`✅ localStorage ACTUALIZADO (CANCELADO): ${lineName}`);
+                                        
+                                        // Disparar evento manual para esta pestaña también
+                                        try{ window.updateColumnTimers(); }catch(e){}
+                                    }
+                                }catch(e){ console.warn('Error eliminando solicitud de Firebase:', e); }
+                            })();
                         } else {
                             // add request
                             s.classList.add('requested');
@@ -2981,12 +4460,32 @@
                             delete solicitudMap[key].salida; // clear salida while new request open
                             try{ console.log('saved solicitud for', key, solicitudMap[key].solicitud); }catch(e){}
                             
-                            // NUEVO: Guardar en Firebase
-                            try{
-                                if(window.FirebaseSync){
-                                    window.FirebaseSync.addSolicitud(lineName, blockText).catch(e=>console.warn('Error en solicitud Firebase:', e));
-                                }
-                            }catch(e){ console.warn('Error agregando solicitud:', e); }
+                            // 🔄 GUARDAR EN FIREBASE EN TIEMPO REAL
+                            (async () => {
+                                try{
+                                    if(window.db){
+                                        const now = Date.now();
+                                        const solicitudRef = window.db.ref(`solicitudes/${lineName}/${idx}`);
+                                        await solicitudRef.set({
+                                            parcial: blockText,
+                                            requestedAt: now,
+                                            timestamp: new Date().toISOString()
+                                        });
+                                        console.log(`🟠 SOLICITUD GUARDADA EN FIREBASE: ${lineName}[${idx}]`);
+                                        
+                                        // 🟣 GUARDAR TIMESTAMP EN solicitud_times PARA SINCRONIZACIÓN EN TIEMPO REAL
+                                        await window.db.ref(`solicitud_times/${lineName}`).set(now);
+                                        console.log(`⏱️ TIMESTAMP DE SOLICITUD GUARDADO EN FIREBASE: ${lineName} = ${now}`);
+                                        
+                                        // 🔥 ACTUALIZAR CACHE GLOBAL INMEDIATAMENTE (para esta pestaña)
+                                        window.firebaseTimestampsCache[lineName] = now;
+                                        console.log(`✅ CACHE ACTUALIZADO LOCALMENTE: ${lineName} = ${now}`, window.firebaseTimestampsCache);
+                                        
+                                        // Actualizar timers en esta pestaña
+                                        try{ window.updateColumnTimers(); }catch(e){}
+                                    }
+                                }catch(e){ console.warn('Error guardando solicitud en Firebase:', e); }
+                            })();
                         }
 
                         if(arr.length > 0) reqMap[key] = Array.from(new Set(arr)).sort((a,b)=>a-b); else delete reqMap[key];
@@ -3009,27 +4508,106 @@
             });
         })();
 
+        // Función para mostrar modal de password con ojito
+        function showPasswordModal(title) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'password-modal-overlay';
+                
+                const modal = document.createElement('div');
+                modal.className = 'password-modal';
+                
+                modal.innerHTML = `
+                    <h3>${title}</h3>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password-input" placeholder="Ingresa la clave" autocomplete="off">
+                        <button type="button" class="password-toggle-eye" id="toggle-password">👁️</button>
+                    </div>
+                    <div class="password-modal-buttons">
+                        <button class="btn-cancel">Cancelar</button>
+                        <button class="btn-accept">Aceptar</button>
+                    </div>
+                `;
+                
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+                
+                const input = modal.querySelector('#password-input');
+                const toggleBtn = modal.querySelector('#toggle-password');
+                const btnCancel = modal.querySelector('.btn-cancel');
+                const btnAccept = modal.querySelector('.btn-accept');
+                
+                // Focus en el input
+                setTimeout(() => input.focus(), 100);
+                
+                // Toggle password visibility
+                toggleBtn.addEventListener('click', () => {
+                    if(input.type === 'password'){
+                        input.type = 'text';
+                        toggleBtn.textContent = '🙈';
+                    } else {
+                        input.type = 'password';
+                        toggleBtn.textContent = '👁️';
+                    }
+                });
+                
+                // Aceptar con Enter
+                input.addEventListener('keypress', (e) => {
+                    if(e.key === 'Enter') btnAccept.click();
+                });
+                
+                // Cancelar con Escape
+                document.addEventListener('keydown', function escHandler(e) {
+                    if(e.key === 'Escape'){
+                        document.removeEventListener('keydown', escHandler);
+                        overlay.remove();
+                        resolve(null);
+                    }
+                });
+                
+                btnCancel.addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(null);
+                });
+                
+                btnAccept.addEventListener('click', () => {
+                    const password = input.value;
+                    overlay.remove();
+                    resolve(password);
+                });
+                
+                overlay.addEventListener('click', (e) => {
+                    if(e.target === overlay){
+                        overlay.remove();
+                        resolve(null);
+                    }
+                });
+            });
+        }
+        
         // manejar botón "Anular solicitud"
         (function(){
             const btnAnular = document.getElementById('btn-anular-solicitud');
             if(!btnAnular) return;
-            btnAnular.addEventListener('click', ()=>{
-                // Find all requested parcials (those with 'requested' class)
-                const requested = Array.from(document.querySelectorAll('.block.requested'));
-                if(requested.length === 0){
-                    try{ status.textContent = 'No hay solicitudes activas para anular.'; }catch(e){}
+            btnAnular.addEventListener('click', async ()=>{
+                // 🎯 SOLO ANULAR LOS PARCIALES SELECCIONADOS, NO TODOS LOS SOLICITADOS
+                const selected = Array.from(document.querySelectorAll('.block.selected-parcial'));
+                if(selected.length === 0){
+                    try{ status.textContent = 'Selecciona primero uno o más parciales para anular.'; }catch(e){}
                     return;
                 }
                 
-                // Ask for password
-                const password = prompt('Ingresa la clave para anular solicitud:', '');
+                // Ask for password con modal personalizado
+                const password = await showPasswordModal('Ingresa la clave para anular solicitud:');
                 if(password === null) return; // user cancelled
                 
                 const correctPassword = localStorage.getItem('pk_admin_password_anular') || 'AB135';
                 if(password !== correctPassword){
-                    alert('❌ Clave incorrecta. La solicitud no ha sido anulada.');
+                    alert('❌ Clave incorrecta. La anulación no ha sido realizada.');
                     return;
                 }
+                
+                if(!confirm(`¿Anular ${selected.length} solicitud(es) seleccionada(s)?`)) return;
                 
                 // Password correct, proceed with cancellation
                 try{ ensureBlockDataAttributes(); }catch(e){}
@@ -3039,7 +4617,7 @@
                 let solicitudMap = {};
                 try{ solicitudMap = JSON.parse(localStorage.getItem('pk_solicitud_salida')||'{}'); }catch(e){ solicitudMap = {}; }
                 
-                requested.forEach(s => {
+                selected.forEach(s => {
                     try{
                         let lineName = s.getAttribute('data-line') || ((s.closest('.column')||{}).querySelector('.column-header')||{textContent:''}).textContent;
                         lineName = (lineName||'').trim();
@@ -3051,8 +4629,36 @@
                         const arr = Array.isArray(reqMap[key]) ? reqMap[key].slice() : [];
                         const pos = arr.indexOf(idx);
                         
+                        // 🟠 ELIMINAR DE FIREBASE INMEDIATAMENTE (sincronización en tiempo real)
+                        (async () => {
+                            try{
+                                if(window.db){
+                                    const solicitudRef = window.db.ref(`solicitudes/${lineName}/${idx}`);
+                                    await solicitudRef.remove();
+                                    console.log(`🗑️ SOLICITUD ANULADA EN FIREBASE: ${lineName}[${idx}]`);
+                                    
+                                    // 🔍 VERIFICAR SI QUEDAN MÁS SOLICITUDES DE ESTA LÍNEA
+                                    const remainingSolicitudes = await window.db.ref(`solicitudes/${lineName}`).once('value');
+                                    const solicitudesData = remainingSolicitudes.val() || {};
+                                    const hasMoreSolicitudes = Object.keys(solicitudesData).length > 0;
+                                    
+                                    if(!hasMoreSolicitudes){
+                                        // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES SOLO SI NO HAY MÁS SOLICITUDES
+                                        await window.db.ref(`solicitud_times/${lineName}`).remove();
+                                        console.log(`⏱️ Timer detenido en Firebase (no hay más solicitudes): ${lineName}`);
+                                        
+                                        // Limpiar cache local
+                                        if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[lineName];
+                                    } else {
+                                        console.log(`⏱️ Timer sigue corriendo (quedan ${Object.keys(solicitudesData).length} solicitudes): ${lineName}`);
+                                    }
+                                }
+                            }catch(e){ console.warn('Error eliminando solicitud de Firebase:', e); }
+                        })();
+                        
                         // Remove from requested
                         s.classList.remove('requested');
+                        s.classList.remove('selected-parcial');
                         if(pos !== -1) arr.splice(pos, 1);
                         canceled++;
                         
@@ -3119,12 +4725,51 @@
                         try{ ensureBlockDataAttributes(); }catch(e){}
                         let lineName = s.getAttribute('data-line') || ((s.closest('.column')||{}).querySelector('.column-header')||{textContent:''}).textContent;
                         lineName = (lineName||'').trim();
+                        const idx = parseInt(s.getAttribute('data-index')||'-1',10);
                         const blockText = (s.textContent || s.innerText || '').trim();
                         if(!lineName || !blockText) continue;
 
                         // enviar al Firebase
                         if(window.FirebaseSync){
                             await window.FirebaseSync.addAbastecimiento(lineName, blockText).catch(e=>console.warn('Error en abastecimiento Firebase:', e));
+                        }
+
+                        // 🗑️ ELIMINAR DE SOLICITUDES EN FIREBASE (ya fue abastecido)
+                        console.log(`%c🔍 DEBUG ABASTECER: lineName="${lineName}", idx=${idx}, isFinite=${Number.isFinite(idx)}`, 'background: #9C27B0; color: white;');
+                        
+                        if(window.db && Number.isFinite(idx)){
+                            try{
+                                await window.db.ref(`solicitudes/${lineName}/${idx}`).remove();
+                                console.log(`🗑️ Solicitud eliminada de Firebase (abastecido): ${lineName}[${idx}]`);
+                                
+                                // 🔍 VERIFICAR SI QUEDAN MÁS SOLICITUDES DE ESTA LÍNEA
+                                const remainingSolicitudes = await window.db.ref(`solicitudes/${lineName}`).once('value');
+                                const solicitudesData = remainingSolicitudes.val() || {};
+                                const remainingKeys = Object.keys(solicitudesData);
+                                const hasMoreSolicitudes = remainingKeys.length > 0;
+                                
+                                console.log(`%c🔍 VERIFICANDO SOLICITUDES RESTANTES DE ${lineName}:`, 'background: #2196F3; color: white; font-weight: bold;', {
+                                    solicitudesData,
+                                    remainingKeys,
+                                    hasMoreSolicitudes
+                                });
+                                
+                                if(!hasMoreSolicitudes){
+                                    // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES SOLO SI NO HAY MÁS SOLICITUDES
+                                    await window.db.ref(`solicitud_times/${lineName}`).remove();
+                                    console.log(`%c⏱️ TIMER DETENIDO EN FIREBASE (no hay más solicitudes): ${lineName}`, 'background: #4CAF50; color: white; font-weight: bold;');
+                                    
+                                    // Limpiar cache local
+                                    if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[lineName];
+                                    
+                                    // Forzar actualización de timers
+                                    setTimeout(() => {
+                                        try{ window.updateColumnTimers(); }catch(e){}
+                                    }, 100);
+                                } else {
+                                    console.log(`%c⏱️ TIMER SIGUE CORRIENDO (quedan ${remainingKeys.length} solicitudes): ${lineName}`, 'background: #FF9800; color: white; font-weight: bold;', remainingKeys);
+                                }
+                            }catch(e){ console.warn('Error eliminando solicitud:', e); }
                         }
 
                         // visual: eliminar bloque (animación)
@@ -3150,14 +4795,49 @@
         })();
 
         btnSave && btnSave.addEventListener('click', ()=>{
-            if(!confirm('¿Guardar cambios en la gestión de líneas?')) return;
             const lines = load();
             const ok = save(lines);
             if(ok){
                 // apply immediately to main UI in same tab
                 try{ if(window.applyLinesToDOM) window.applyLinesToDOM(lines); }catch(e){}
-                alert('✅ Cambios guardados.');
-            } else alert('❌ Error al guardar.');
+                // Mostrar confirmación rápida (ya todo se guarda automáticamente)
+                const status = document.createElement('div');
+                status.textContent = '✅ Cambios sincronizados';
+                status.style.position = 'fixed';
+                status.style.top = '20px';
+                status.style.right = '20px';
+                status.style.background = '#4CAF50';
+                status.style.color = 'white';
+                status.style.padding = '12px 16px';
+                status.style.borderRadius = '6px';
+                status.style.zIndex = '10000';
+                document.body.appendChild(status);
+                setTimeout(()=>status.remove(), 2000);
+                
+                // 🔓 PERMITIR CERRAR DESPUÉS DE SINCRONIZAR
+                window.managePanelSynced = true;
+                const closeBtn = document.getElementById('m-btn-close');
+                if(closeBtn){
+                    closeBtn.style.opacity = '1';
+                    closeBtn.style.cursor = 'pointer';
+                    closeBtn.title = 'Cerrar';
+                }
+                
+                console.log('✅ Cambios sincronizados con Firebase');
+            } else {
+                const status = document.createElement('div');
+                status.textContent = '❌ Error al sincronizar';
+                status.style.position = 'fixed';
+                status.style.top = '20px';
+                status.style.right = '20px';
+                status.style.background = '#e74c3c';
+                status.style.color = 'white';
+                status.style.padding = '12px 16px';
+                status.style.borderRadius = '6px';
+                status.style.zIndex = '10000';
+                document.body.appendChild(status);
+                setTimeout(()=>status.remove(), 2000);
+            }
         });
 
         // reset button removed per user request
@@ -3187,14 +4867,23 @@
             // Obtener estado actual del kanban desde el DOM
             getCurrentKanbanState() {
                 const state = {};
+                const blockNamesMap = JSON.parse(localStorage.getItem('pk_block_names')||'{}');
                 const cols = document.querySelectorAll('.container .column');
                 cols.forEach(col => {
                     const header = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
                     if(header){
                         const blocks = [];
-                        col.querySelectorAll('.block').forEach(b => {
-                            const blockText = (b.textContent || b.innerText || '').trim();
-                            blocks.push(blockText);
+                        col.querySelectorAll('.block').forEach((b, idx) => {
+                            // Prioridad: data-name -> pk_block_names -> label -> fallback
+                            let name = b.getAttribute('data-name');
+                            if(!name && blockNamesMap[header]) name = blockNamesMap[header][String(idx)];
+                            if(!name){
+                                const labelEl = b.querySelector('.label');
+                                name = labelEl ? labelEl.textContent.trim() : '';
+                            }
+                            if(!name) name = (b.textContent || b.innerText || '').trim();
+                            if(!name) name = `Parcial ${idx+1}`;
+                            blocks.push(name);
                         });
                         state[header] = blocks;
                     }
@@ -3346,62 +5035,38 @@
 
         // Sincronizar cada 5 segundos a Firebase (no localStorage)
         try{
-            // Send data to Firebase every 5 seconds for automatic syncing
+            // Flags para evitar que un cliente sin cambios sobrescriba Firebase
+            window._pendingLocalSync = false;
+            window._lastLocalChange = 0;
+            window._lastFirebaseApply = 0;
+
+            // Marcar cambio local
+            const markLocalChange = () => {
+                window._pendingLocalSync = true;
+                window._lastLocalChange = Date.now();
+            };
+
+            // Send data to Firebase únicamente si hubo cambios locales
             const sendToFirebase = () => {
                 try{
-                    // Enviar sólo el estado del kanban a Firebase cada 5s
+                    if(window._isUpdatingFromFirebase) return; // no enviar mientras se aplica remoto
+                    if(!window._pendingLocalSync) return; // nada que enviar
+                    // Enviar sólo el estado del kanban cuando hay cambios locales
                     try{
                         const state = DataSync.getCurrentKanbanState();
                         if(window.FirebaseSync){
                             window.FirebaseSync.updateKanbanState(state).catch(()=>{});
+                            window._pendingLocalSync = false;
+                            window._lastFirebaseApply = Date.now();
                         }
                     }catch(e){ console.warn('Error enviando kanban state a Firebase', e); }
                 }catch(e){ console.warn('Error sending to Firebase:', e); }
             };
 
-            // Sincronizar a Firebase cada 5 segundos (no localStorage)
-            setInterval(() => {
-                sendToFirebase();
-            }, 5000);
+            // DESACTIVAMOS autosync periódico y por mutación para evitar sobrescrituras desde clientes vacíos.
+            // Solo se sincroniza cuando se ejecutan acciones explícitas (addPartial/removePartial/abastecer/solicitar).
 
-            // debounced sync for rapid DOM changes
-            let _syncDebounceTimer = null;
-            const scheduleDebouncedSync = (ms = 700) => {
-                clearTimeout(_syncDebounceTimer);
-                _syncDebounceTimer = setTimeout(()=>{
-                    // Envia cambios rápidos a Firebase
-                    sendToFirebase();
-                }, ms);
-            };
-
-            // Observe DOM changes under the main container to trigger sync
-            const container = document.querySelector('.container') || document.body;
-            try{
-                const observer = new MutationObserver(mutations => {
-                    // if there are many mutations, debounce into a single sync
-                    scheduleDebouncedSync(700);
-                });
-                observer.observe(container, { childList: true, subtree: true, attributes: true, characterData: true });
-            }catch(e){ console.warn('MutationObserver not available', e); }
-
-            // Also listen to clicks that likely change state (safety net)
-            document.addEventListener('click', (ev)=>{
-                const t = ev.target;
-                if(t && (t.closest && (t.closest('.block') || t.matches('button') || t.matches('input') || t.matches('select')))){
-                    scheduleDebouncedSync(800);
-                    // Fire and forget to Firebase
-                    try { sendToFirebase(); } catch(e) {}
-                }
-            }, {capture:true});
-
-            // Ensure final sync to Firebase before unload
-            window.addEventListener('beforeunload', () => {
-                try { sendToFirebase(); } catch(e) {}
-            });
-
-            console.log('✅ Sistema de sincronización con Firebase listo');
-            console.log('📍 Los datos se guardan en Firebase Realtime Database automáticamente cada 5 segundos');
-            console.log('🔥 Monitorea en tiempo real en: https://console.firebase.google.com');
+            console.log('✅ Sistema de sincronización listo (sync solo en acciones, sin autosync cada 5s)');
         }catch(e){ console.error('Error configuring autosync', e); }
     })();
     </script>
@@ -3742,6 +5407,12 @@
             // Guardar líneas en localStorage y renderizar
             localStorage.setItem('pk_lines', JSON.stringify(lines));
             
+            // ✅ APLICAR datos del Kanban al DOM (esto renderiza los bloques)
+            if(typeof applyKanbanSnapshot === 'function') {
+                console.log('🎨 Aplicando kanbanSnapshot al DOM...');
+                applyKanbanSnapshot(kanbanData);
+            }
+            
             // Aplicar líneas al DOM
             if(window.applyLinesToDOM){
                 window.applyLinesToDOM(lines);
@@ -3758,41 +5429,137 @@
     // ==========================================
     // ESCUCHAR CAMBIOS EN TIEMPO REAL (Listeners activos)
     // ==========================================
+    
+    // Variable global para rastrear última actualización y evitar loops
+    window._lastKanbanUpdate = null;
+    window._isUpdatingFromFirebase = false;
+    
     async function initFirebaseSync(){
+        console.log('🚀🚀🚀 initFirebaseSync() LLAMADO');
         try{
             if(window.firebaseInitPromise){
+                console.log('⏳ Esperando firebaseInitPromise...');
                 await window.firebaseInitPromise;
+                console.log('✅ firebaseInitPromise resuelto');
             }
             
             if(!window.db){
-                console.warn('⚠ Firebase DB no disponible.');
+                console.error('❌❌❌ Firebase DB NO DISPONIBLE en initFirebaseSync');
                 return;
             }
 
             console.log('🔊 Iniciando listeners de Firebase en tiempo real...');
+            console.log('🗄️ DB ref:', window.db.ref().toString());
+            
+            // ESPERAR a que Firebase esté realmente conectado antes de registrar listeners
+            console.log('⏳ Esperando conexión de Firebase...');
+            let isConnected = false;
+            await new Promise((resolve) => {
+                window.db.ref('.info/connected').on('value', (snap) => {
+                    console.log('📡 Estado de conexión:', snap.val());
+                    if(snap.val() === true && !isConnected) {
+                        isConnected = true;
+                        console.log('✅✅✅ Firebase DEFINITIVAMENTE conectado - Registrando listeners');
+                        resolve();
+                    }
+                });
+                // Timeout de seguridad de 10s
+                setTimeout(() => {
+                    console.log('⏰ Timeout de 10s alcanzado - continuando de todos modos');
+                    resolve();
+                }, 10000);
+            });
+            console.log('📡 Database URL:', window.db.ref().toString());
 
-            // Escuchar cambios en kanban_estado
-            window.db.ref('kanban_estado').on('value', (snap) => {
-                const firebaseKanban = snap.val() || {};
-                localStorage.setItem('json_kanban_state', JSON.stringify(firebaseKanban, null, 2));
-                console.log('🔄 Kanban actualizado desde Firebase en tiempo real:', firebaseKanban);
+            // Función reutilizable para aplicar un snapshot de kanban al DOM/localStorage
+            function applyKanbanSnapshot(firebaseKanban){
+                // CONVERTIR objetos a arrays (Firebase convierte arrays en objetos con índices)
+                const convertToArray = (obj) => {
+                    if(!obj) return [];
+                    if(Array.isArray(obj)) return obj;
+                    // Si es objeto con claves numéricas, convertir a array
+                    const keys = Object.keys(obj).sort((a, b) => parseInt(a) - parseInt(b));
+                    return keys.map(k => obj[k]);
+                };
                 
-                // Obtener líneas actuales del DOM (fijas)
-                const currentLines = JSON.parse(localStorage.getItem('pk_lines') || '[]');
+                // Convertir TODOS los valores a arrays
+                const normalizedKanban = {};
+                Object.keys(firebaseKanban || {}).forEach(lineName => {
+                    normalizedKanban[lineName] = convertToArray(firebaseKanban[lineName]);
+                });
                 
-                // Actualizar SOLO los conteos de parciales, mantener los títulos fijos
-                const updatedLines = currentLines.map(line => ({
-                    name: line.name,
-                    count: (firebaseKanban[line.name] || []).length,
-                    active: line.active !== false
-                }));
-                
-                localStorage.setItem('pk_lines', JSON.stringify(updatedLines));
-                
-                // Actualizar pk_block_names para reflejar los nombres de parciales
+                const firebaseJSON = JSON.stringify(normalizedKanban || {});
+
+                // Detectar cambios reales
+                const lastUpdate = window._lastKanbanUpdate;
+                const hasChanges = lastUpdate !== firebaseJSON;
+
+                console.log('🔄 Datos de Firebase (normalizados):', normalizedKanban);
+                console.log('📊 Líneas:', Object.keys(normalizedKanban||{}));
+                console.log('📦 Parciales por línea:', Object.keys(normalizedKanban||{}).map(k => `${k}: ${(normalizedKanban[k] || []).length}`).join(', '));
+                console.log('🔍 ¿Hay cambios reales?', hasChanges);
+
+                if(!hasChanges && window._isUpdatingFromFirebase){
+                    console.log('⏭️ Sin cambios reales, ignorando actualización');
+                    return;
+                }
+
+                window._lastKanbanUpdate = firebaseJSON;
+                try { localStorage.setItem('json_kanban_state', JSON.stringify(normalizedKanban, null, 2)); } catch(e) { console.warn('localStorage no disponible'); }
+
+                // Obtener líneas actuales del localStorage (mantener estructura)
+                let currentLines = [];
+                try { currentLines = JSON.parse(localStorage.getItem('pk_lines') || '[]'); } catch(e) { currentLines = []; }
+
+                // SI currentLines está vacío, crear líneas desde Firebase
+                if(currentLines.length === 0) {
+                    console.log('📌 currentLines vacío - creando desde Firebase');
+                    Object.keys(normalizedKanban || {}).forEach(lineName => {
+                        currentLines.push({
+                            name: lineName,
+                            count: 0,
+                            active: true
+                        });
+                    });
+                }
+
+                // Crear un mapa de líneas existentes para preservar active/inactive
+                const lineStatusMap = {};
+                currentLines.forEach(line => {
+                    lineStatusMap[line.name] = line.active !== false;
+                });
+
+                // Construir líneas actualizadas desde Firebase
+                const updatedLines = [];
+
+                // Primero, actualizar líneas que existen en Firebase
+                Object.keys(normalizedKanban || {}).forEach(lineName => {
+                    const parciales = normalizedKanban[lineName] || [];
+                    updatedLines.push({
+                        name: lineName,
+                        count: parciales.length,
+                        active: lineStatusMap[lineName] !== false
+                    });
+                });
+
+                // Luego, agregar líneas que están en currentLines pero no en Firebase (preservar estructura)
+                currentLines.forEach(line => {
+                    if (!normalizedKanban || !normalizedKanban.hasOwnProperty(line.name)) {
+                        updatedLines.push({
+                            name: line.name,
+                            count: 0,
+                            active: line.active !== false
+                        });
+                    }
+                });
+
+                try { localStorage.setItem('pk_lines', JSON.stringify(updatedLines)); } catch(e) { console.warn('localStorage no disponible'); }
+                console.log('💾 pk_lines actualizado:', updatedLines);
+
+                // Actualizar pk_block_names para reflejar los nombres EXACTOS de Firebase
                 const pk_block_names = {};
-                Object.keys(firebaseKanban).forEach(lineName => {
-                    const blocks = firebaseKanban[lineName] || [];
+                Object.keys(normalizedKanban || {}).forEach(lineName => {
+                    const blocks = normalizedKanban[lineName] || [];
                     pk_block_names[lineName] = {};
                     blocks.forEach((blockName, idx) => {
                         if(blockName){
@@ -3800,23 +5567,134 @@
                         }
                     });
                 });
-                localStorage.setItem('pk_block_names', JSON.stringify(pk_block_names));
-                
-                // Refrescar bloques sin cambiar estructura de columnas
+                try { localStorage.setItem('pk_block_names', JSON.stringify(pk_block_names)); } catch(e) { console.warn('localStorage no disponible'); }
+                console.log('🏷️ pk_block_names actualizado:', pk_block_names);
+
+                // Refrescar bloques SIN cambiar estructura de columnas
                 if(window.applyLinesToDOM){
                     try{
+                        window._isUpdatingFromFirebase = true;
                         window.applyLinesToDOM(updatedLines);
-                        console.log('📦 Parciales actualizados en tiempo real');
+                        console.log('✅ Parciales actualizados en DOM desde Firebase');
+                        console.log('🎯 Total de líneas renderizadas:', updatedLines.length);
+
+                        // Forzar actualización de los nombres de bloques desde pk_block_names
+                        setTimeout(() => {
+                            try {
+                                const cols = Array.from(document.querySelectorAll('.container > .column'));
+                                cols.forEach(col => {
+                                    const lineName = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                                    const blocks = Array.from(col.querySelectorAll('.block'));
+                                    const lineNames = pk_block_names[lineName] || {};
+
+                                    blocks.forEach((block, idx) => {
+                                        const savedName = lineNames[String(idx)];
+                                        if(savedName){
+                                            block.setAttribute('data-name', savedName);
+                                            block.setAttribute('data-line', lineName);
+                                            block.setAttribute('data-index', String(idx));
+
+                                            // Actualizar el texto visible
+                                            let label = block.querySelector('.label');
+                                            if(!label){
+                                                label = document.createElement('span');
+                                                label.className = 'label';
+                                                block.appendChild(label);
+                                            }
+                                            label.textContent = savedName;
+                                            console.log(`🏷️ Bloque ${lineName}[${idx}] = "${savedName}"`);
+                                        }
+                                    });
+                                });
+                                console.log('✅ Nombres de bloques sincronizados con Firebase');
+                                
+                                // ⚡ RESTAURAR ESTADO DE SOLICITUD desde Firebase (async IIFE)
+                                (async () => {
+                                    try {
+                                        if(window.db) {
+                                            const solicitudSnap = await window.db.ref('solicitudes').once('value');
+                                            const solicitudData = solicitudSnap.val() || {};
+                                            
+                                            console.log('📋 Datos de solicitudes de Firebase:', solicitudData);
+                                            
+                                            // Obtener líneas solicitadas
+                                            const requestedMap = {};
+                                            Object.keys(solicitudData || {}).forEach(lineName => {
+                                                const lineData = solicitudData[lineName];
+                                                if(lineData && typeof lineData === 'object') {
+                                                    requestedMap[lineName] = Object.keys(lineData)
+                                                        .filter(key => lineData[key] && lineData[key].requestedAt)
+                                                    .map(key => parseInt(key));
+                                            }
+                                        });
+                                        
+                                        console.log('🟠 Parciales solicitados desde Firebase:', requestedMap);
+                                        
+                                        // Restaurar clase .requested en los bloques
+                                        Object.keys(requestedMap || {}).forEach(lineName => {
+                                            const indices = requestedMap[lineName] || [];
+                                            const blocks = Array.from(document.querySelectorAll(`[data-line="${lineName}"].block`));
+                                            
+                                            blocks.forEach((block, idx) => {
+                                                if(indices.includes(idx)) {
+                                                    block.classList.add('requested');
+                                                    console.log(`🟠 Marcado como solicitado: ${lineName}[${idx}]`);
+                                                } else {
+                                                    block.classList.remove('requested');
+                                                }
+                                            });
+                                        });
+                                        
+                                        console.log('✅ Estados de solicitud restaurados');
+                                    }
+                                    } catch(e) {
+                                        console.warn('⚠️ Error restaurando solicitudes:', e);
+                                    }
+                                })();
+                            } catch(e) {
+                                console.error('❌ Error actualizando nombres de bloques:', e);
+                            } finally {
+                                window._isUpdatingFromFirebase = false;
+                            }
+                        }, 100);
                     }catch(e){
-                        console.error('Error actualizando parciales:', e);
+                        console.error('❌ Error actualizando parciales:', e);
+                        window._isUpdatingFromFirebase = false;
                     }
                 }
+            }
+
+            // Escuchar cambios en kanban_estado
+            window.db.ref('kanban_estado').on('value', (snap) => {
+                console.log('🔔 ¡¡¡ EVENTO DE FIREBASE RECIBIDO !!!');
+                const firebaseKanban = snap.val() || {};
+                console.log('📥 Datos recibidos de Firebase:', firebaseKanban);
+                applyKanbanSnapshot(firebaseKanban);
             });
 
-            // Escuchar cambios en solicitudes
-            window.db.ref('solicitudes').on('value', (snap) => {
+            // Polling de respaldo: cada 3s forzar lectura y aplicación del estado (útil si fallan eventos)
+            setInterval(async () => {
+                try{
+                    if(!window.db) return;
+                    const snap = await window.db.ref('kanban_estado').once('value');
+                    const data = snap.val() || {};
+                    console.log('⏱️ [POLLING 3s] Estado de Firebase:', data);
+                    applyKanbanSnapshot(data);
+                }catch(e){ console.warn('Polling kanban_estado falló', e); }
+            }, 3000);
+
+            console.log('✅ Listener de kanban_estado registrado');
+
+            // 🟠🔥 LISTENER CRÍTICO: Escuchar cambios en solicitudes (TITILADO EN TIEMPO REAL)
+            console.log('🔥🟠 REGISTRANDO LISTENER DE SOLICITUDES...');
+            const solicitudesRef = window.db.ref('solicitudes');
+            console.log('🔗 Referencia de solicitudes:', solicitudesRef.toString());
+            
+            solicitudesRef.on('value', (snap) => {
+                console.log('🔔🟠🔔🟠🔔 ¡¡¡ EVENTO DE SOLICITUDES RECIBIDO (TITILADO) !!!');
                 const firebaseSolicitudes = snap.val() || {};
-                localStorage.setItem('json_solicitudes', JSON.stringify(firebaseSolicitudes, null, 2));
+                console.log('📥 Solicitudes de Firebase:', firebaseSolicitudes);
+                try { localStorage.setItem('json_solicitudes', JSON.stringify(firebaseSolicitudes, null, 2)); } catch(e) { console.warn('localStorage no disponible'); }
                 
                 // Convertir solicitudes de Firebase a pk_requested y pk_solicitud_salida
                 const pk_requested = {};
@@ -3839,21 +5717,73 @@
                     }
                 });
                 
-                localStorage.setItem('pk_requested', JSON.stringify(pk_requested));
-                localStorage.setItem('pk_solicitud_salida', JSON.stringify(pk_solicitud_salida));
+                try { localStorage.setItem('pk_requested', JSON.stringify(pk_requested)); } catch(e) { console.warn('localStorage no disponible'); }
+                try { localStorage.setItem('pk_solicitud_salida', JSON.stringify(pk_solicitud_salida)); } catch(e) { console.warn('localStorage no disponible'); }
                 
-                // Actualizar UI
-                if(window.applyRequestedToDOM){
+                // 🟠🎯 ACTUALIZAR VISUALMENTE LOS BLOQUES CON ESTADO "REQUESTED" (TITILADO)
+                console.log('🟠 Actualizando estados de solicitud en DOM:', pk_requested);
+                
+                // Obtener todas las columnas
+                const columns = document.querySelectorAll('.container > .column');
+                columns.forEach(col => {
                     try{
-                        window.applyRequestedToDOM();
-                        console.log('📍 Solicitudes actualizadas en tiempo real');
+                        const lineName = (col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                        const blocks = Array.from(col.querySelectorAll('.block'));
+                        const requestedIndices = pk_requested[lineName] || [];
+                        
+                        console.log(`📋 Línea: ${lineName}, Indices solicitados: [${requestedIndices.join(', ')}]`);
+                        
+                        blocks.forEach((block, idx) => {
+                            // Asegurar que el bloque tiene data-index
+                            if(!block.hasAttribute('data-index')){
+                                block.setAttribute('data-index', String(idx));
+                            }
+                            if(!block.hasAttribute('data-line')){
+                                block.setAttribute('data-line', lineName);
+                            }
+                            
+                            const blockIdx = parseInt(block.getAttribute('data-index') || idx, 10);
+                            
+                            if(requestedIndices.includes(blockIdx)) {
+                                if(!block.classList.contains('requested')){
+                                    block.classList.add('requested');
+                                    console.log(`✨🟠 TITILADO ACTIVADO: ${lineName}[${blockIdx}]`);
+                                }
+                            } else {
+                                if(block.classList.contains('requested')){
+                                    block.classList.remove('requested');
+                                    console.log(`🔇 TITILADO DESACTIVADO: ${lineName}[${blockIdx}]`);
+                                }
+                            }
+                        });
                     }catch(e){
-                        console.warn('Error aplicando solicitudes:', e);
+                        console.warn('Error procesando columna para titilado:', e);
                     }
-                }
+                });
                 
-                console.log('🔄 Solicitudes sincronizadas desde Firebase');
+                console.log('✅ Titilado sincronizado desde Firebase');
+            }, (error) => {
+                console.error('❌ ERROR EN LISTENER DE SOLICITUDES:', error);
             });
+            
+            console.log('✅✅ LISTENER DE SOLICITUDES REGISTRADO CORRECTAMENTE');
+            
+            // 🧪 TEST: Leer solicitudes actuales inmediatamente
+            setTimeout(async () => {
+                try{
+                    console.log('🧪 TEST: Leyendo solicitudes actuales...');
+                    const testSnap = await window.db.ref('solicitudes').once('value');
+                    const testData = testSnap.val();
+                    console.log('🧪 Solicitudes actuales en Firebase:', testData);
+                    if(testData && Object.keys(testData).length > 0){
+                        console.log('🟠 HAY SOLICITUDES ACTIVAS - deberían estar titilando');
+                    } else {
+                        console.log('⚪ No hay solicitudes activas');
+                    }
+                }catch(e){
+                    console.error('❌ Error en test de solicitudes:', e);
+                }
+            }, 2000);
 
             // Escuchar cambios en abastecimientos
             window.db.ref('abastecimientos').on('value', (snap) => {
@@ -3880,7 +5810,7 @@
                     }
                 });
                 
-                localStorage.setItem('pk_history', JSON.stringify(pk_history.slice(-200)));
+                try { localStorage.setItem('pk_history', JSON.stringify(pk_history.slice(-200))); } catch(e) { console.warn('localStorage no disponible'); }
                 
                 // Actualizar historial en la UI
                 try{
@@ -3898,11 +5828,80 @@
             // Escuchar cambios en anulaciones
             window.db.ref('anulaciones').on('value', (snap) => {
                 const firebaseAnulaciones = snap.val() || {};
-                localStorage.setItem('json_anulaciones', JSON.stringify(firebaseAnulaciones, null, 2));
+                try { localStorage.setItem('json_anulaciones', JSON.stringify(firebaseAnulaciones, null, 2)); } catch(e) { console.warn('localStorage no disponible'); }
                 console.log('🔄 Anulaciones actualizadas desde Firebase en tiempo real');
             });
             
             console.log('✅ Listeners de Firebase inicializados correctamente');
+            
+            // ⚡ CARGAR DATOS INICIALES DESDE FIREBASE (sin depender de localStorage)
+            console.log('🔄 Cargando datos iniciales desde Firebase...');
+            try {
+                const kanbanSnap = await window.db.ref('kanban_estado').once('value');
+                const firebaseKanban = kanbanSnap.val() || {};
+                console.log('📥 Datos de Firebase recibidos:', firebaseKanban);
+                
+                if(Object.keys(firebaseKanban).length > 0) {
+                    console.log('✅ Aplicando snapshot inicial...');
+                    if(typeof applyKanbanSnapshot === 'function') {
+                        applyKanbanSnapshot(firebaseKanban);
+                        console.log('✅ Snapshot aplicado exitosamente');
+                    } else {
+                        console.warn('⚠️ applyKanbanSnapshot no disponible');
+                    }
+                } else {
+                    console.log('⚠️ Firebase está vacío');
+                }
+            } catch(e) {
+                console.error('❌ Error cargando datos iniciales:', e);
+            }
+            
+            // ⚡ POLLING AGRESIVO CADA 1 SEGUNDO PARA SINCRONIZACIÓN EN TIEMPO REAL
+            console.log('🚀 INICIANDO POLLING CADA 1 SEGUNDO...');
+            let pollCount = 0;
+            window._pollingInterval = setInterval(async () => {
+                pollCount++;
+                try {
+                    const snapshot = await window.db.ref('kanban_estado').once('value');
+                    const firebaseKanban = snapshot.val() || {};
+                    
+                    if(Object.keys(firebaseKanban).length === 0) {
+                        return; // Sin datos en Firebase, no hacer nada
+                    }
+                    
+                    // CONVERTIR objetos a arrays (Firebase convierte arrays en objetos)
+                    const convertToArray = (obj) => {
+                        if(!obj) return [];
+                        if(Array.isArray(obj)) return obj;
+                        const keys = Object.keys(obj).sort((a, b) => parseInt(a) - parseInt(b));
+                        return keys.map(k => obj[k]);
+                    };
+                    
+                    // Verificar si hay diferencia entre Firebase y DOM
+                    let needsUpdate = false;
+                    
+                    Object.keys(firebaseKanban).forEach(lineName => {
+                        const parciales = convertToArray(firebaseKanban[lineName]);
+                        const blocks = Array.from(document.querySelectorAll(`[data-line="${lineName}"].block`));
+                        
+                        if(blocks.length !== parciales.length) {
+                            needsUpdate = true;
+                            console.log(`⚠️ [POLLING #${pollCount}] ${lineName}: Firebase=${parciales.length}, DOM=${blocks.length} → ACTUALIZANDO`);
+                        }
+                    });
+                    
+                    if(needsUpdate) {
+                        console.log(`⚡ [POLLING #${pollCount}] DETECTADO CAMBIO - Aplicando snapshot...`);
+                        if(typeof applyKanbanSnapshot === 'function') {
+                            applyKanbanSnapshot(firebaseKanban);
+                        }
+                    }
+                    
+                } catch(e) {
+                    console.error(`❌ [POLLING #${pollCount}] Error:`, e.message);
+                }
+            }, 1000);
+            
         }catch(e){
             console.warn('⚠ Error inicializando Firebase listeners:', e.message);
         }
@@ -4031,3 +6030,4 @@
     });
 </script>
 </body>
+</html>
