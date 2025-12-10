@@ -2091,30 +2091,31 @@
                                     
                                     console.log(`✅ Parcial eliminado y reorganizado en Firebase: ${rb.line}[${rb.index}]`);
                                     
-                                    // 🔍 VERIFICAR SI QUEDAN MÁS SOLICITUDES DE ESTA LÍNEA ANTES DE DETENER EL TIMER
+                                    // ⏱️ DETENER TIMER SIEMPRE (solo hay 1 solicitud por línea)
                                     try{
-                                        const remainingSolicitudes = await window.db.ref(`solicitudes/${rb.line}`).once('value');
-                                        const solicitudesData = remainingSolicitudes.val() || {};
-                                        const remainingKeys = Object.keys(solicitudesData);
-                                        const hasMoreSolicitudes = remainingKeys.length > 0;
+                                        await window.db.ref(`solicitud_times/${rb.line}`).remove();
+                                        console.log(`%c⏱️✅ TIMER DETENIDO EN FIREBASE: ${rb.line}`, 'background: #4CAF50; color: white; font-weight: bold;');
                                         
-                                        console.log(`%c🔍 VERIFICANDO SOLICITUDES RESTANTES DE ${rb.line} (drag-drop):`, 'background: #2196F3; color: white; font-weight: bold;', {
-                                            solicitudesData,
-                                            remainingKeys,
-                                            hasMoreSolicitudes
-                                        });
-                                        
-                                        if(!hasMoreSolicitudes){
-                                            // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES SOLO SI NO HAY MÁS SOLICITUDES
-                                            await window.db.ref(`solicitud_times/${rb.line}`).remove();
-                                            console.log(`%c⏱️ TIMER DETENIDO EN FIREBASE (no hay más solicitudes): ${rb.line}`, 'background: #4CAF50; color: white; font-weight: bold;');
-                                            
-                                            // Limpiar cache local
-                                            if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[rb.line];
-                                        } else {
-                                            console.log(`%c⏱️ TIMER SIGUE CORRIENDO (quedan ${remainingKeys.length} solicitudes): ${rb.line}`, 'background: #FF9800; color: white; font-weight: bold;', remainingKeys);
+                                        // 🔥 Limpiar cache local INMEDIATAMENTE
+                                        if(window.firebaseTimestampsCache) {
+                                            delete window.firebaseTimestampsCache[rb.line];
+                                            console.log('🗑️ Cache local limpiado:', rb.line);
                                         }
-                                    }catch(e){ console.warn('Error verificando solicitudes restantes:', e); }
+                                        
+                                        // 🔥 FORZAR ACTUALIZACIÓN EN TODAS LAS VENTANAS
+                                        localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache || {}));
+                                        
+                                        // Disparar evento de storage para sincronizar otras pestañas
+                                        window.dispatchEvent(new StorageEvent('storage', {
+                                            key: 'solicitud_times_firebase',
+                                            newValue: JSON.stringify(window.firebaseTimestampsCache || {})
+                                        }));
+                                        
+                                        // Actualizar timers en esta ventana
+                                        setTimeout(() => {
+                                            try{ window.updateColumnTimers(); }catch(e){}
+                                        }, 50);
+                                    }catch(e){ console.warn('Error deteniendo timer:', e); }
                                 }catch(e){ console.warn('Error eliminando/reorganizando parcial de Firebase:', e); }
                             }
                         }catch(e){ console.error('Error registrando abastecimiento en Firebase:', e); }
@@ -2464,30 +2465,31 @@
                                     
                                     console.log(`✅ Parcial eliminado y reorganizado en Firebase: ${lastInfo.line}[${lastInfo.index}]`);
                                     
-                                    // 🔍 VERIFICAR SI QUEDAN MÁS SOLICITUDES DE ESTA LÍNEA ANTES DE DETENER EL TIMER
+                                    // ⏱️ DETENER TIMER SIEMPRE (solo hay 1 solicitud por línea)
                                     try{
-                                        const remainingSolicitudes = await window.db.ref(`solicitudes/${lastInfo.line}`).once('value');
-                                        const solicitudesData = remainingSolicitudes.val() || {};
-                                        const remainingKeys = Object.keys(solicitudesData);
-                                        const hasMoreSolicitudes = remainingKeys.length > 0;
+                                        await window.db.ref(`solicitud_times/${lastInfo.line}`).remove();
+                                        console.log(`%c⏱️✅ TIMER DETENIDO EN FIREBASE: ${lastInfo.line}`, 'background: #4CAF50; color: white; font-weight: bold;');
                                         
-                                        console.log(`%c🔍 VERIFICANDO SOLICITUDES RESTANTES DE ${lastInfo.line} (btnRemove):`, 'background: #2196F3; color: white; font-weight: bold;', {
-                                            solicitudesData,
-                                            remainingKeys,
-                                            hasMoreSolicitudes
-                                        });
-                                        
-                                        if(!hasMoreSolicitudes){
-                                            // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES SOLO SI NO HAY MÁS SOLICITUDES
-                                            await window.db.ref(`solicitud_times/${lastInfo.line}`).remove();
-                                            console.log(`%c⏱️ TIMER DETENIDO EN FIREBASE (no hay más solicitudes): ${lastInfo.line}`, 'background: #4CAF50; color: white; font-weight: bold;');
-                                            
-                                            // Limpiar cache local
-                                            if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[lastInfo.line];
-                                        } else {
-                                            console.log(`%c⏱️ TIMER SIGUE CORRIENDO (quedan ${remainingKeys.length} solicitudes): ${lastInfo.line}`, 'background: #FF9800; color: white; font-weight: bold;', remainingKeys);
+                                        // 🔥 Limpiar cache local INMEDIATAMENTE
+                                        if(window.firebaseTimestampsCache) {
+                                            delete window.firebaseTimestampsCache[lastInfo.line];
+                                            console.log('🗑️ Cache local limpiado:', lastInfo.line);
                                         }
-                                    }catch(e){ console.warn('Error verificando solicitudes restantes:', e); }
+                                        
+                                        // 🔥 FORZAR ACTUALIZACIÓN EN TODAS LAS VENTANAS
+                                        localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache || {}));
+                                        
+                                        // Disparar evento de storage para sincronizar otras pestañas
+                                        window.dispatchEvent(new StorageEvent('storage', {
+                                            key: 'solicitud_times_firebase',
+                                            newValue: JSON.stringify(window.firebaseTimestampsCache || {})
+                                        }));
+                                        
+                                        // Actualizar timers en esta ventana
+                                        setTimeout(() => {
+                                            try{ window.updateColumnTimers(); }catch(e){}
+                                        }, 50);
+                                    }catch(e){ console.warn('Error deteniendo timer:', e); }
                                 }catch(e){ console.warn('Error eliminando/reorganizando parcial de Firebase:', e); }
                             }
                             
@@ -2878,9 +2880,9 @@
 
         // start interval to refresh column timers (and keep a quick initial update)
         try{
-            console.log('%c⏱️ INICIANDO INTERVALO DE TIMERS CADA 500ms...', 'background: #FF9800; color: white; font-weight: bold;');
+            console.log('%c⏱️ INICIANDO INTERVALO DE TIMERS CADA 100ms (MÁS RÁPIDO)...', 'background: #FF9800; color: white; font-weight: bold;');
             // store interval id in window for debugging/ability to clear
-            // Aumentado a 500ms para actualización más frecuente
+            // Reducido a 100ms para actualización casi en tiempo real
             window._colTimersInterval = setInterval(()=>{ 
                 try{ 
                     ensureTimerElements(); 
@@ -2888,7 +2890,7 @@
                 }catch(e){ 
                     console.error('%c❌ TIMER INTERVAL ERROR:', 'background: #FF6B6B; color: white;', e); 
                 } 
-            }, 500);
+            }, 100);
             console.log('%c✅ INTERVALO INICIADO:', 'background: #4CAF50; color: white;', 'ID =', window._colTimersInterval);
         }catch(e){ 
             console.error('%c❌ FAILED TO START TIMERS INTERVAL:', 'background: #FF6B6B; color: white;', e); 
@@ -3139,65 +3141,59 @@
                             // Aquí se podría agregar lógica adicional si se necesita
                         }
                         
-                        // Si Firebase tiene menos parciales, eliminar del DOM
-                        if(firebaseParciales.length < domBlocks.length){
-                            const toRemove = domBlocks.length - firebaseParciales.length;
-                            console.log(`🗑️ Eliminando ${toRemove} parcial(es) de ${lineName}`);
-                            
-                            for(let i = 0; i < toRemove; i++){
-                                const lastBlock = domBlocks[domBlocks.length - 1 - i];
-                                if(lastBlock && lastBlock.parentNode){
-                                    lastBlock.classList.add('removing');
-                                    setTimeout(() => {
-                                        try{ lastBlock.parentNode.removeChild(lastBlock); }catch(e){}
-                                    }, 200);
-                                }
-                            }
-                        }
+                        // 🔥 SINCRONIZACIÓN COMPLETA: Reconstruir DOM para que coincida exactamente con Firebase
                         
-                        // Si Firebase tiene más parciales, agregar al DOM
-                        else if(firebaseParciales.length > domBlocks.length){
-                            const toAdd = firebaseParciales.length - domBlocks.length;
-                            console.log(`➕ Agregando ${toAdd} parcial(es) a ${lineName}`);
+                        // Si los parciales son diferentes, reconstruir completamente
+                        const needsRebuild = firebaseParciales.length !== domBlocks.length ||
+                            firebaseParciales.some((parcial, idx) => {
+                                const block = domBlocks[idx];
+                                return !block || block.getAttribute('data-name') !== parcial;
+                            });
+                        
+                        if(needsRebuild){
+                            console.log(`🔄 RECONSTRUYENDO DOM de ${lineName} para sincronizar con Firebase`);
+                            console.log(`   Firebase: [${firebaseParciales.join(', ')}]`);
+                            console.log(`   DOM: [${domBlocks.map(b => b.getAttribute('data-name')).join(', ')}]`);
                             
-                            for(let i = domBlocks.length; i < firebaseParciales.length; i++){
-                                const parcialName = firebaseParciales[i];
-                                const block = document.createElement('div');
-                                block.className = 'block appear';
-                                block.setAttribute('data-line', lineName);
-                                block.setAttribute('data-index', String(i));
-                                block.setAttribute('data-name', parcialName);
-                                
-                                const label = document.createElement('span');
-                                label.className = 'label';
-                                label.textContent = parcialName;
-                                block.appendChild(label);
-                                
-                                col.appendChild(block);
-                                
+                            // 1️⃣ Eliminar todos los bloques existentes con animación
+                            domBlocks.forEach((block, idx) => {
+                                block.classList.add('removing');
                                 setTimeout(() => {
-                                    block.classList.remove('appear');
-                                }, 420);
-                            }
-                        }
-                        
-                        // Actualizar nombres de parciales existentes
-                        const updatedBlocks = Array.from(col.querySelectorAll('.block'));
-                        updatedBlocks.forEach((block, idx) => {
-                            if(idx < firebaseParciales.length){
-                                const parcialName = firebaseParciales[idx];
-                                block.setAttribute('data-name', parcialName);
-                                block.setAttribute('data-index', String(idx));
-                                
-                                let label = block.querySelector('.label');
-                                if(!label){
-                                    label = document.createElement('span');
+                                    try{ 
+                                        if(block.parentNode) {
+                                            block.parentNode.removeChild(block);
+                                        }
+                                    }catch(e){}
+                                }, 50 + (idx * 20)); // Animación escalonada
+                            });
+                            
+                            // 2️⃣ Después de eliminar, agregar los nuevos bloques desde Firebase
+                            setTimeout(() => {
+                                firebaseParciales.forEach((parcialName, idx) => {
+                                    const block = document.createElement('div');
+                                    block.className = 'block appear';
+                                    block.setAttribute('data-line', lineName);
+                                    block.setAttribute('data-index', String(idx));
+                                    block.setAttribute('data-name', parcialName);
+                                    
+                                    const label = document.createElement('span');
                                     label.className = 'label';
+                                    label.textContent = parcialName;
                                     block.appendChild(label);
-                                }
-                                label.textContent = parcialName;
-                            }
-                        });
+                                    
+                                    col.appendChild(block);
+                                    
+                                    // Remover clase de animación
+                                    setTimeout(() => {
+                                        block.classList.remove('appear');
+                                    }, 300);
+                                });
+                                
+                                console.log(`✅ DOM reconstruido: ${lineName} ahora tiene ${firebaseParciales.length} parciales`);
+                            }, domBlocks.length > 0 ? (100 + (domBlocks.length * 20)) : 0);
+                        } else {
+                            console.log(`✅ ${lineName} ya está sincronizado`);
+                        }
                         
                     }catch(e){
                         console.warn(`Error procesando línea ${lineName}:`, e);
@@ -3217,16 +3213,27 @@
                 try{ setupBlockSelection(); }catch(e){}
                 
                 // 🟠 Re-aplicar titilado después de reorganización para asegurar consistencia
+                // Esperar un poco más para que la reconstrucción termine
                 setTimeout(() => {
                     try{
+                        // Re-asegurar data-attributes después de reconstrucción
+                        ensureBlockDataAttributes();
+                        
+                        // Re-aplicar titilado
                         if(window.applyRequestedToDOM){
                             window.applyRequestedToDOM();
                             console.log('🟠 Titilado reaplicado tras sincronización de kanban');
                         }
+                        
+                        // Re-configurar event listeners en los nuevos bloques
+                        if(window.setupBlockSelection){
+                            window.setupBlockSelection();
+                            console.log('🖱️ Event listeners reconfigurados en bloques');
+                        }
                     }catch(e){
                         console.warn('Error reaplicando titilado:', e);
                     }
-                }, 100);
+                }, 400); // Aumentado para que la reconstrucción termine
                 
                 console.log('✅ Kanban sincronizado desde Firebase');
             }, (error) => {
@@ -3541,7 +3548,7 @@
             
             console.log('✅ LISTENER DE SOLICITUD_TIMES REGISTRADO');
             
-            // 🔄 SINCRONIZACIÓN PERIÓDICA DESDE FIREBASE (cada 800ms) PARA ASEGURAR QUE TODAS LAS PESTAÑAS ESTÉN SINCRONIZADAS
+            // 🔄 SINCRONIZACIÓN PERIÓDICA DESDE FIREBASE (cada 200ms) PARA ASEGURAR QUE TODAS LAS PESTAÑAS ESTÉN SINCRONIZADAS
             console.log('%c⏱️ INICIANDO SINCRONIZACIÓN PERIÓDICA DESDE FIREBASE...', 'background: #00BCD4; color: white; font-weight: bold;');
             window._syncFromFirebaseInterval = setInterval(() => {
                 if(!window.db) return;
@@ -3567,9 +3574,9 @@
                 }catch(e){
                     console.error('%c❌ Error en sincronización periódica:', 'background: #FF6B6B; color: white;', e);
                 }
-            }, 800);
+            }, 200);
             
-            console.log('✅ SINCRONIZACIÓN PERIÓDICA INICIADA - Intervalo cada 800ms');
+            console.log('✅ SINCRONIZACIÓN PERIÓDICA INICIADA - Intervalo cada 200ms (más rápido)');
             
             // 🎯 INICIALIZAR ORDEN DE LÍNEAS SI NO EXISTE
             window.db.ref('line_order').once('value').then((snap) => {
@@ -4929,14 +4936,26 @@
                                         await window.db.ref(`solicitud_times/${lineName}`).remove();
                                         console.log(`⏱️ TIMESTAMP DE SOLICITUD ELIMINADO: ${lineName}`);
                                         
-                                        // 🔄 ACTUALIZAR localStorage INMEDIATAMENTE
-                                        const currentTimes = JSON.parse(localStorage.getItem('solicitud_times_firebase')||'{}');
-                                        delete currentTimes[lineName];
-                                        localStorage.setItem('solicitud_times_firebase', JSON.stringify(currentTimes));
+                                        // 🔥 Limpiar cache local INMEDIATAMENTE
+                                        if(window.firebaseTimestampsCache) {
+                                            delete window.firebaseTimestampsCache[lineName];
+                                        }
+                                        
+                                        // 🔥 FORZAR ACTUALIZACIÓN EN TODAS LAS VENTANAS
+                                        localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache || {}));
+                                        
+                                        // Disparar evento de storage para sincronizar otras pestañas
+                                        window.dispatchEvent(new StorageEvent('storage', {
+                                            key: 'solicitud_times_firebase',
+                                            newValue: JSON.stringify(window.firebaseTimestampsCache || {})
+                                        }));
+                                        
                                         console.log(`✅ localStorage ACTUALIZADO (CANCELADO): ${lineName}`);
                                         
-                                        // Disparar evento manual para esta pestaña también
-                                        try{ window.updateColumnTimers(); }catch(e){}
+                                        // Actualizar timers en esta ventana
+                                        setTimeout(() => {
+                                            try{ window.updateColumnTimers(); }catch(e){}
+                                        }, 50);
                                     }
                                 }catch(e){ console.warn('Error eliminando solicitud de Firebase:', e); }
                             })();
@@ -4969,11 +4988,23 @@
                                         console.log(`⏱️ TIMESTAMP DE SOLICITUD GUARDADO EN FIREBASE: ${lineName} = ${now}`);
                                         
                                         // 🔥 ACTUALIZAR CACHE GLOBAL INMEDIATAMENTE (para esta pestaña)
+                                        window.firebaseTimestampsCache = window.firebaseTimestampsCache || {};
                                         window.firebaseTimestampsCache[lineName] = now;
                                         console.log(`✅ CACHE ACTUALIZADO LOCALMENTE: ${lineName} = ${now}`, window.firebaseTimestampsCache);
                                         
-                                        // Actualizar timers en esta pestaña
-                                        try{ window.updateColumnTimers(); }catch(e){}
+                                        // 🔥 FORZAR ACTUALIZACIÓN EN TODAS LAS VENTANAS
+                                        localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache));
+                                        
+                                        // Disparar evento de storage para sincronizar otras pestañas
+                                        window.dispatchEvent(new StorageEvent('storage', {
+                                            key: 'solicitud_times_firebase',
+                                            newValue: JSON.stringify(window.firebaseTimestampsCache)
+                                        }));
+                                        
+                                        // Actualizar timers en esta pestaña INMEDIATAMENTE
+                                        setTimeout(() => {
+                                            try{ window.updateColumnTimers(); }catch(e){}
+                                        }, 50);
                                     }
                                 }catch(e){ console.warn('Error guardando solicitud en Firebase:', e); }
                             })();
