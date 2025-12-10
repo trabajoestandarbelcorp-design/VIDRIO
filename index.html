@@ -1669,6 +1669,41 @@
         // durations survive page reloads. Run a small deferred refresh of timer UI to pick up stored values.
         try{ setTimeout(()=>{ try{ ensureTimerElements(); updateColumnTimers(); window.updateSolicitudDurationsDisplay && window.updateSolicitudDurationsDisplay(); window.updateEmptyDurationsDisplay && window.updateEmptyDurationsDisplay(); }catch(e){} }, 50); }catch(e){}
 
+        // 🔒 SISTEMA DE COLA PARA PREVENIR OPERACIONES SIMULTÁNEAS
+        window._operationQueue = window._operationQueue || [];
+        window._processingOperation = false;
+        
+        async function queueOperation(operationFn, description) {
+            return new Promise((resolve, reject) => {
+                window._operationQueue.push({ fn: operationFn, description, resolve, reject });
+                console.log(`📋 Operación en cola: ${description} (total: ${window._operationQueue.length})`);
+                processQueue();
+            });
+        }
+        
+        async function processQueue() {
+            if(window._processingOperation || window._operationQueue.length === 0) return;
+            
+            window._processingOperation = true;
+            const { fn, description, resolve, reject } = window._operationQueue.shift();
+            
+            console.log(`⚙️ Procesando: ${description} (quedan ${window._operationQueue.length})`);
+            
+            try {
+                const result = await fn();
+                resolve(result);
+            } catch(e) {
+                console.error(`❌ Error en operación: ${description}`, e);
+                reject(e);
+            } finally {
+                window._processingOperation = false;
+                // Pequeña pausa antes de procesar siguiente operación
+                setTimeout(() => processQueue(), 50);
+            }
+        }
+        
+        window.queueOperation = queueOperation;
+
         const input = document.getElementById('line-name');
         const btnAdd = document.getElementById('btn-entrada');
         const btnRemove = document.getElementById('btn-salida');
@@ -1994,8 +2029,9 @@
                     // load existing history, append new entries for each removed block
                     let newEntries = [];
                     
-                    // 🔥 IMPORTANTE: Ejecutar TODAS las eliminaciones en paralelo pero ESPERAR A QUE TERMINEN
-                    await Promise.all(removedBlocks.map(async rb => {
+                    // 🔥 IMPORTANTE: Usar sistema de cola para evitar conflictos en operaciones simultáneas
+                    for(const rb of removedBlocks) {
+                        await queueOperation(async () => {
                         try{
                             const prevSolic = solicitudMap[rb.line] && solicitudMap[rb.line].solicitud ? parseInt(solicitudMap[rb.line].solicitud,10) : null;
                             const duration = prevSolic ? Math.max(0, now - prevSolic) : 0;
@@ -2044,10 +2080,14 @@
                                         await window.db.ref(`kanban_estado/${rb.line}`).remove();
                                     }
                                     
-                                    // 5. También eliminar de solicitudes si estaba ahí
+                                    // 5. 🔥 SOLO ELIMINAR LA SOLICITUD ESPECÍFICA (NO reorganizar)
+                                    // Los índices de solicitudes se mantienen vinculados a la posición DOM original
                                     try{
                                         await window.db.ref(`solicitudes/${rb.line}/${rb.index}`).remove();
-                                    }catch(e){ /* ignored */ }
+                                        console.log(`🗑️ SOLICITUD ELIMINADA: ${rb.line}[${rb.index}]`);
+                                    }catch(e){ 
+                                        console.warn('Error eliminando solicitud:', e);
+                                    }
                                     
                                     console.log(`✅ Parcial eliminado y reorganizado en Firebase: ${rb.line}[${rb.index}]`);
                                     
@@ -2078,7 +2118,8 @@
                                 }catch(e){ console.warn('Error eliminando/reorganizando parcial de Firebase:', e); }
                             }
                         }catch(e){ console.error('Error registrando abastecimiento en Firebase:', e); }
-                    }));
+                        }, `Abastecer ${rb.line}#${rb.index}`);
+                    }
                     // persist via helper so view is refreshed
                     try{ addHistoryEntries(newEntries); }catch(e){}
 
@@ -2360,6 +2401,16 @@
                         try{ addHistoryEntries([{ name: lastInfo.name || (lastInfo.line + '#' + lastInfo.index), line: lastInfo.line, index: lastInfo.index, requestedAt: prevSolic || now, suppliedAt: now, duration }]); }catch(e){}
                     }
 
+                    // 🔥 REGISTRAR ABASTECIMIENTO EN FIREBASE ANTES DE ELIMINAR
+                    if(lastInfo && window.FirebaseSync){
+                        try{
+                            await window.FirebaseSync.addAbastecimiento(lastInfo.line, lastInfo.name || (`${lastInfo.line}#${lastInfo.index}`));
+                            console.log('✅ Abastecimiento registrado en Firebase');
+                        }catch(e){
+                            console.error('❌ Error registrando abastecimiento:', e);
+                        }
+                    }
+
                     // Local removal only
                     removePartial(lineName);
 
@@ -2374,22 +2425,73 @@
                                 console.log('✅ Firebase está inicializado');
                             }
                             
-                            const kanbanState = getCurrentKanbanState();
-                            console.log('📤 Enviando estado actualizado tras eliminación a Firebase...');
-                            console.log('📦 Estado a enviar:', JSON.stringify(kanbanState, null, 2));
-                            
-                            if(window.FirebaseSync && window.FirebaseSync.updateKanbanState){
-                                const result = await window.FirebaseSync.updateKanbanState(kanbanState);
-                                console.log('✅ Resultado de sincronización (eliminación):', result);
-                                
-                                if(result.success){
-                                    console.log('🎉 ELIMINACIÓN SINCRONIZADA - Los otros dispositivos deberían ver el cambio');
-                                } else {
-                                    console.error('❌ SINCRONIZACIÓN DE ELIMINACIÓN FALLÓ:', result.error);
-                                }
-                            } else {
-                                console.warn('⚠ FirebaseSync no disponible');
+                            // 🗑️ ELIMINAR DE kanban_estado EN FIREBASE Y REORGANIZAR ÍNDICES
+                            if(window.db && lastInfo){
+                                try{
+                                    // 1. Leer todo kanban_estado
+                                    const kanbanSnap = await window.db.ref('kanban_estado').once('value');
+                                    const kanbanData = kanbanSnap.val() || {};
+                                    
+                                    // 2. Eliminar el parcial específico
+                                    const lineParciales = kanbanData[lastInfo.line] || {};
+                                    delete lineParciales[lastInfo.index];
+                                    
+                                    // 3. Convertir a array limpio (sin huecos)
+                                    const parcialesArray = Object.keys(lineParciales)
+                                        .sort((a, b) => parseInt(a) - parseInt(b))
+                                        .map(key => lineParciales[key]);
+                                    
+                                    // 4. Guardar nuevamente reorganizado
+                                    if(parcialesArray.length > 0) {
+                                        const reorganized = {};
+                                        parcialesArray.forEach((parcial, idx) => {
+                                            reorganized[idx] = parcial;
+                                        });
+                                        await window.db.ref(`kanban_estado/${lastInfo.line}`).set(reorganized);
+                                    } else {
+                                        // Si no hay parciales, eliminar la línea
+                                        await window.db.ref(`kanban_estado/${lastInfo.line}`).remove();
+                                    }
+                                    
+                                    // 5. 🔥 SOLO ELIMINAR LA SOLICITUD ESPECÍFICA (NO reorganizar)
+                                    // Los índices de solicitudes se mantienen vinculados a la posición DOM original
+                                    try{
+                                        await window.db.ref(`solicitudes/${lastInfo.line}/${lastInfo.index}`).remove();
+                                        console.log(`🗑️ SOLICITUD ELIMINADA: ${lastInfo.line}[${lastInfo.index}]`);
+                                    }catch(e){ 
+                                        console.warn('Error eliminando solicitud:', e);
+                                    }
+                                    
+                                    console.log(`✅ Parcial eliminado y reorganizado en Firebase: ${lastInfo.line}[${lastInfo.index}]`);
+                                    
+                                    // 🔍 VERIFICAR SI QUEDAN MÁS SOLICITUDES DE ESTA LÍNEA ANTES DE DETENER EL TIMER
+                                    try{
+                                        const remainingSolicitudes = await window.db.ref(`solicitudes/${lastInfo.line}`).once('value');
+                                        const solicitudesData = remainingSolicitudes.val() || {};
+                                        const remainingKeys = Object.keys(solicitudesData);
+                                        const hasMoreSolicitudes = remainingKeys.length > 0;
+                                        
+                                        console.log(`%c🔍 VERIFICANDO SOLICITUDES RESTANTES DE ${lastInfo.line} (btnRemove):`, 'background: #2196F3; color: white; font-weight: bold;', {
+                                            solicitudesData,
+                                            remainingKeys,
+                                            hasMoreSolicitudes
+                                        });
+                                        
+                                        if(!hasMoreSolicitudes){
+                                            // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD_TIMES SOLO SI NO HAY MÁS SOLICITUDES
+                                            await window.db.ref(`solicitud_times/${lastInfo.line}`).remove();
+                                            console.log(`%c⏱️ TIMER DETENIDO EN FIREBASE (no hay más solicitudes): ${lastInfo.line}`, 'background: #4CAF50; color: white; font-weight: bold;');
+                                            
+                                            // Limpiar cache local
+                                            if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[lastInfo.line];
+                                        } else {
+                                            console.log(`%c⏱️ TIMER SIGUE CORRIENDO (quedan ${remainingKeys.length} solicitudes): ${lastInfo.line}`, 'background: #FF9800; color: white; font-weight: bold;', remainingKeys);
+                                        }
+                                    }catch(e){ console.warn('Error verificando solicitudes restantes:', e); }
+                                }catch(e){ console.warn('Error eliminando/reorganizando parcial de Firebase:', e); }
                             }
+                            
+                            console.log('🎉 ELIMINACIÓN SINCRONIZADA - Los otros dispositivos deberían ver el cambio');
                         }catch(e){
                             console.error('❌ Error sincronizando eliminación:', e);
                         }
@@ -2929,7 +3031,7 @@
                     console.warn('localStorage no disponible'); 
                 }
                 
-                // 🟠🎯 APLICAR TITILADO AL DOM
+                // 🟠🎯 APLICAR TITILADO AL DOM (ROBUSTO - SIN REORGANIZAR ÍNDICES)
                 const columns = document.querySelectorAll('.container > .column');
                 let totalActivado = 0;
                 let totalDesactivado = 0;
@@ -2940,26 +3042,35 @@
                         const blocks = Array.from(col.querySelectorAll('.block'));
                         const requestedIndices = pk_requested[lineName] || [];
                         
-                        blocks.forEach((block, idx) => {
+                        // 🔥 IMPORTANTE: NO actualizar data-index
+                        // Los índices deben mantenerse fijos para que las solicitudes persistan correctamente
+                        blocks.forEach((block, domPosition) => {
+                            // Usar el data-index almacenado (si existe), sino usar posición DOM
+                            let blockIdx = block.hasAttribute('data-index') 
+                                ? parseInt(block.getAttribute('data-index'))
+                                : domPosition;
+                            
+                            // Asegurar que tenga data-index si no lo tiene
                             if(!block.hasAttribute('data-index')){
-                                block.setAttribute('data-index', String(idx));
+                                block.setAttribute('data-index', String(domPosition));
+                                blockIdx = domPosition;
                             }
+                            
                             if(!block.hasAttribute('data-line')){
                                 block.setAttribute('data-line', lineName);
                             }
                             
-                            const blockIdx = parseInt(block.getAttribute('data-index') || idx, 10);
-                            
+                            // Comparar con solicitudes usando el índice almacenado
                             if(requestedIndices.includes(blockIdx)) {
                                 if(!block.classList.contains('requested')){
                                     block.classList.add('requested');
-                                    console.log(`✨🟠 TITILADO ACTIVADO: ${lineName}[${blockIdx}]`);
+                                    console.log(`✨🟠 TITILADO ACTIVADO: ${lineName}[${blockIdx}] (DOM pos: ${domPosition})`);
                                     totalActivado++;
                                 }
                             } else {
                                 if(block.classList.contains('requested')){
                                     block.classList.remove('requested');
-                                    console.log(`🔇 TITILADO DESACTIVADO: ${lineName}[${blockIdx}]`);
+                                    console.log(`🔇 TITILADO DESACTIVADO: ${lineName}[${blockIdx}] (DOM pos: ${domPosition})`);
                                     totalDesactivado++;
                                 }
                             }
@@ -3093,9 +3204,29 @@
                     }
                 });
                 
+                // 🔥 IMPORTANTE: Re-sincronizar índices de data-attributes después de cambios
+                try{
+                    ensureBlockDataAttributes();
+                    console.log('🔄 Data-attributes actualizados tras sincronización');
+                }catch(e){
+                    console.warn('Error actualizando data-attributes:', e);
+                }
+                
                 // Actualizar contadores y UI
                 try{ checkEmptyLines(); }catch(e){}
                 try{ setupBlockSelection(); }catch(e){}
+                
+                // 🟠 Re-aplicar titilado después de reorganización para asegurar consistencia
+                setTimeout(() => {
+                    try{
+                        if(window.applyRequestedToDOM){
+                            window.applyRequestedToDOM();
+                            console.log('🟠 Titilado reaplicado tras sincronización de kanban');
+                        }
+                    }catch(e){
+                        console.warn('Error reaplicando titilado:', e);
+                    }
+                }, 100);
                 
                 console.log('✅ Kanban sincronizado desde Firebase');
             }, (error) => {
@@ -4725,15 +4856,39 @@
             solicitar.addEventListener('click', ()=>{
                 const selected = Array.from(document.querySelectorAll('.block.selected-parcial'));
                 if(selected.length === 0){
-                    try{ status.textContent = 'Selecciona primero uno o más parciales para solicitar.'; }catch(e){}
+                    try{ status.textContent = 'Selecciona primero un parcial para solicitar.'; }catch(e){}
                     return;
                 }
+                
+                // 🔥 VERIFICAR QUE TODOS LOS SELECCIONADOS SEAN DE LÍNEAS DIFERENTES
+                const linesMap = {};
+                const reqMap = getRequestedMap();
+                
+                for(const s of selected){
+                    const lineName = (s.getAttribute('data-line') || ((s.closest('.column')||{}).querySelector('.column-header')||{textContent:''}).textContent||'').trim();
+                    
+                    // ❌ Si ya hay una solicitud en esta línea, avisar
+                    if(reqMap[lineName] && reqMap[lineName].length > 0){
+                        alert(`⚠️ La línea "${lineName}" ya tiene un parcial solicitado.\nSolo se puede solicitar 1 parcial por línea a la vez.`);
+                        try{ status.textContent = `Error: ${lineName} ya tiene solicitud pendiente.`; }catch(e){}
+                        return;
+                    }
+                    
+                    // ❌ Si ya seleccionaron otro de esta línea, avisar
+                    if(linesMap[lineName]){
+                        alert(`⚠️ No puedes solicitar múltiples parciales de la misma línea "${lineName}".\nSolo se permite 1 parcial por línea.`);
+                        try{ status.textContent = 'Error: Solo 1 parcial por línea.'; }catch(e){}
+                        return;
+                    }
+                    
+                    linesMap[lineName] = true;
+                }
+                
                 if(!confirm(`¿Solicitar ${selected.length} parcial(es)?`)) return;
                 // ensure data attributes are present
                 try{ ensureBlockDataAttributes(); }catch(e){}
 
                 let added = 0, removed = 0;
-                const reqMap = getRequestedMap();
                 // load or create solicitud map once
                 let solicitudMap = {};
                 try{ solicitudMap = JSON.parse(localStorage.getItem('pk_solicitud_salida')||'{}'); }catch(e){ solicitudMap = {}; }
