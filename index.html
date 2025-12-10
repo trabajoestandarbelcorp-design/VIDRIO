@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Diseño PK</title>
 <!-- Fuente moderna -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -425,6 +428,158 @@
                 height: 44px !important;
                 font-size: 11px !important;
                 padding: 8px !important;
+            }
+            
+            /* INDICADOR ESCLUSA LLENA - ULTRA PREMIUM */
+            #esclusa-indicator {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                display: none;
+                align-items: center;
+                gap: 15px;
+                padding: 18px 32px;
+                background: linear-gradient(135deg, #ff0000 0%, #b91c1c 50%, #7f1d1d 100%);
+                border-radius: 16px;
+                cursor: pointer;
+                animation: flash-ultra 1s ease-in-out infinite;
+                border: 3px solid #fff;
+                box-shadow: 0 0 30px rgba(255,0,0,0.8),
+                            0 0 60px rgba(255,0,0,0.5),
+                            0 10px 40px rgba(0,0,0,0.5),
+                            inset 0 2px 4px rgba(255,255,255,0.3),
+                            inset 0 -2px 4px rgba(0,0,0,0.3);
+                backdrop-filter: blur(10px);
+                transition: all 0.3s ease;
+                transform-style: preserve-3d;
+            }
+            
+            #esclusa-indicator.active {
+                display: flex;
+            }
+            
+            #esclusa-indicator:hover {
+                transform: scale(1.08) translateY(-3px);
+                box-shadow: 0 0 50px rgba(255,0,0,1),
+                            0 0 80px rgba(255,0,0,0.6),
+                            0 15px 50px rgba(0,0,0,0.6);
+            }
+            
+            #esclusa-indicator::before {
+                content: '🚨';
+                font-size: 32px;
+                animation: rotate-pulse 1.5s ease-in-out infinite;
+                filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
+            }
+            
+            @keyframes rotate-pulse {
+                0%, 100% { 
+                    transform: rotate(0deg) scale(1); 
+                }
+                25% { 
+                    transform: rotate(-20deg) scale(1.1); 
+                }
+                50% { 
+                    transform: rotate(20deg) scale(1.15); 
+                }
+                75% { 
+                    transform: rotate(-15deg) scale(1.1); 
+                }
+            }
+            
+            @keyframes flash-ultra {
+                0%, 100% {
+                    background: linear-gradient(135deg, #ff0000 0%, #b91c1c 50%, #7f1d1d 100%);
+                    box-shadow: 0 0 30px rgba(255,0,0,0.8),
+                                0 0 60px rgba(255,0,0,0.5),
+                                0 10px 40px rgba(0,0,0,0.5),
+                                inset 0 2px 4px rgba(255,255,255,0.3);
+                    border-color: #fff;
+                }
+                50% {
+                    background: linear-gradient(135deg, #ffff00 0%, #ff0000 50%, #ff0000 100%);
+                    box-shadow: 0 0 50px rgba(255,255,0,1),
+                                0 0 80px rgba(255,0,0,0.8),
+                                0 0 100px rgba(255,0,0,0.5),
+                                0 15px 50px rgba(0,0,0,0.6),
+                                inset 0 2px 6px rgba(255,255,255,0.5);
+                    border-color: #ffff00;
+                }
+            }
+            
+            .esclusa-text {
+                color: #ffffff;
+                font-size: 24px;
+                font-weight: 900;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                white-space: nowrap;
+                text-shadow: 
+                    -4px -4px 0 #000,
+                    4px -4px 0 #000,
+                    -4px 4px 0 #000,
+                    4px 4px 0 #000,
+                    -4px 0 0 #000,
+                    4px 0 0 #000,
+                    0 -4px 0 #000,
+                    0 4px 0 #000,
+                    -2px -2px 0 #000,
+                    2px -2px 0 #000,
+                    -2px 2px 0 #000,
+                    2px 2px 0 #000,
+                    0 8px 16px rgba(0,0,0,1),
+                    0 0 30px rgba(255,255,0,0.8),
+                    0 0 40px rgba(255,255,255,0.6);
+                position: relative;
+                filter: drop-shadow(0 0 15px rgba(255,255,255,0.9));
+                animation: text-glow 1s ease-in-out infinite;
+            }
+            
+            @keyframes text-glow {
+                0%, 100% {
+                    text-shadow: 
+                        -4px -4px 0 #000, 4px -4px 0 #000,
+                        -4px 4px 0 #000, 4px 4px 0 #000,
+                        -4px 0 0 #000, 4px 0 0 #000,
+                        0 -4px 0 #000, 0 4px 0 #000,
+                        -2px -2px 0 #000, 2px -2px 0 #000,
+                        -2px 2px 0 #000, 2px 2px 0 #000,
+                        0 8px 16px rgba(0,0,0,1),
+                        0 0 30px rgba(255,255,0,0.8),
+                        0 0 40px rgba(255,255,255,0.6);
+                }
+                50% {
+                    text-shadow: 
+                        -4px -4px 0 #000, 4px -4px 0 #000,
+                        -4px 4px 0 #000, 4px 4px 0 #000,
+                        -4px 0 0 #000, 4px 0 0 #000,
+                        0 -4px 0 #000, 0 4px 0 #000,
+                        -2px -2px 0 #000, 2px -2px 0 #000,
+                        -2px 2px 0 #000, 2px 2px 0 #000,
+                        0 8px 16px rgba(0,0,0,1),
+                        0 0 50px rgba(255,255,0,1),
+                        0 0 70px rgba(255,255,255,1);
+                }
+            }
+            
+            .esclusa-text::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, 
+                    transparent 0%, 
+                    rgba(255,255,255,0.5) 50%, 
+                    transparent 100%);
+                animation: shine 2s ease-in-out infinite;
+            }
+            
+            @keyframes shine {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 1; }
             }
             
             .top-controls button {
@@ -2305,6 +2460,37 @@
                         console.log('✅ Firebase está inicializado');
                     }
                     
+                    // 🔥 ELIMINAR TIMESTAMP DE SOLICITUD SI EXISTE (abastecido desde KAMBAN)
+                    if(window.db && lineName){
+                        try{
+                            // Verificar si hay solicitudes activas para esta línea
+                            const solicitudesSnap = await window.db.ref(`solicitudes/${lineName}`).once('value');
+                            const solicitudesData = solicitudesSnap.val() || {};
+                            const hasSolicitudes = Object.keys(solicitudesData).length > 0;
+                            
+                            console.log(`%c🔍 ABASTECER KAMBAN - Verificando solicitudes de ${lineName}:`, 'background: #2196F3; color: white; font-weight: bold;', {
+                                solicitudesData,
+                                hasSolicitudes
+                            });
+                            
+                            if(!hasSolicitudes){
+                                // 🔥 NO HAY SOLICITUDES PENDIENTES - ELIMINAR TIMESTAMP
+                                await window.db.ref(`solicitud_times/${lineName}`).remove();
+                                console.log(`%c⏱️ TIMER DETENIDO EN FIREBASE (abastecido desde KAMBAN): ${lineName}`, 'background: #4CAF50; color: white; font-weight: bold;');
+                                
+                                // Limpiar cache local
+                                if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[lineName];
+                                
+                                // Forzar actualización de timers
+                                setTimeout(() => {
+                                    try{ window.updateColumnTimers(); }catch(e){}
+                                }, 100);
+                            } else {
+                                console.log(`%c⏱️ TIMER SIGUE CORRIENDO (quedan solicitudes pendientes): ${lineName}`, 'background: #FF9800; color: white; font-weight: bold;', solicitudesData);
+                            }
+                        }catch(e){ console.warn('Error verificando/eliminando timer de solicitud:', e); }
+                    }
+                    
                     const kanbanState = getCurrentKanbanState();
                     console.log('📤 Enviando estado completo del Kanban a Firebase...');
                     console.log('📦 Estado a enviar:', JSON.stringify(kanbanState, null, 2));
@@ -4133,6 +4319,73 @@
                 });
             }
             
+            // 🚨 INDICADOR ESCLUSA LLENA - INNOVADOR
+            document.addEventListener('DOMContentLoaded', function(){
+                // Forzar recarga de estilos
+                const styleTag = document.querySelector('style');
+                if(styleTag) {
+                    styleTag.textContent = styleTag.textContent;
+                }
+                
+                const indicator = document.getElementById('esclusa-indicator');
+                console.log('✅ Indicador encontrado:', indicator);
+                if(!indicator) {
+                    console.error('❌ Indicador no encontrado');
+                    return;
+                }
+                
+                let activo = localStorage.getItem('esclusa_llena_estado') === 'true';
+                
+                function actualizar(){
+                    console.log('📝 Actualizando indicador, activo:', activo);
+                    if(activo){
+                        indicator.classList.add('active');
+                        indicator.style.display = 'flex';
+                        console.log('✅ Indicador ACTIVADO (visible)');
+                    } else {
+                        indicator.classList.remove('active');
+                        indicator.style.display = 'none';
+                        console.log('⚪ Indicador DESACTIVADO (oculto)');
+                    }
+                    localStorage.setItem('esclusa_llena_estado', activo ? 'true' : 'false');
+                }
+                
+                actualizar();
+                console.log('🎯 Estado inicial aplicado');
+                
+                // Click para desactivar
+                indicator.addEventListener('click', function(){
+                    if(activo){
+                        activo = false;
+                        actualizar();
+                    }
+                });
+                
+                // Funciones globales
+                window.toggleEsclusaLlena = function(){
+                    activo = !activo;
+                    console.log('🔄 TOGGLE ejecutado, nuevo estado:', activo);
+                    actualizar();
+                    return activo;
+                };
+                
+                // ATAJO DE TECLADO: Ctrl + E para activar/desactivar
+                document.addEventListener('keydown', function(e){
+                    if(e.ctrlKey && e.key === 'e'){
+                        e.preventDefault();
+                        window.toggleEsclusaLlena();
+                    }
+                });
+                
+                // Sincronizar con otras ventanas
+                window.addEventListener('storage', function(e){
+                    if(e.key === 'esclusa_llena_estado'){
+                        activo = e.newValue === 'true';
+                        actualizar();
+                    }
+                });
+            });
+            
             // Mostrar panel de control interno en vez de abrir nueva pestaña
             document.addEventListener('DOMContentLoaded', function(){
                 const btn = document.getElementById('btn-panel-control');
@@ -4167,6 +4420,36 @@
                 }
             });
         </script>
+    <!-- INDICADOR ESCLUSA LLENA - TITILANTE -->
+    <div id="esclusa-indicator" title="Click para desactivar" style="
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 10000 !important;
+        display: none !important;
+        align-items: center !important;
+        gap: 15px !important;
+        padding: 18px 32px !important;
+        background: linear-gradient(135deg, #ff0000 0%, #b91c1c 50%, #7f1d1d 100%) !important;
+        border-radius: 16px !important;
+        cursor: pointer !important;
+        animation: flash-ultra 1s ease-in-out infinite !important;
+        border: 3px solid #fff !important;
+        box-shadow: 0 0 30px rgba(255,0,0,0.8), 0 0 60px rgba(255,0,0,0.5), 0 10px 40px rgba(0,0,0,0.5) !important;
+        backdrop-filter: blur(10px) !important;
+    ">
+        <span style="font-size: 32px; animation: rotate-pulse 1.5s ease-in-out infinite; filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));">🚨</span>
+        <div class="esclusa-text" style="
+            color: #ffffff !important;
+            font-size: 24px !important;
+            font-weight: 900 !important;
+            letter-spacing: 3px !important;
+            text-transform: uppercase !important;
+            text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000, 0 -4px 0 #000, 0 4px 0 #000, 0 8px 16px rgba(0,0,0,1), 0 0 30px rgba(255,255,0,0.8) !important;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.9)) !important;
+        ">ESCLUSA LLENA</div>
+    </div>
+    
     <!-- LAYOUT: Botones arriba, búsqueda/gestionar abajo-izq, líneas derecha -->
     <div class="main-container">
         <!-- Fila superior: BOTONES -->
