@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Abastecedor Móvil - PK Vidrio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e28b07 0%, #06df06 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #06b6d4;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        
+        .status-badge.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-badge.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #06b6d4;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
+        }
+        
+        .input-icon {
+            position: relative;
+        }
+        
+        .input-icon::before {
+            content: '📦';
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+        }
+        
+        .input-icon input {
+            padding-left: 50px;
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(6,182,212,0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(6,182,212,0.5);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Panel de solicitud encontrada */
+        .solicitud-panel {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 3px solid #f59e0b;
+            animation: pulse 2s ease-in-out infinite;
+            display: none;
+        }
+        
+        .solicitud-panel.visible {
+            display: block;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(245,158,11,0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 15px rgba(245,158,11,0);
+            }
+        }
+        
+        .solicitud-panel .titulo {
+            font-size: 14px;
+            font-weight: 800;
+            color: #92400e;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .solicitud-panel .info {
+            font-size: 13px;
+            color: #78350f;
+            margin-bottom: 6px;
+        }
+        
+        .solicitud-panel .tiempo {
+            font-size: 20px;
+            font-weight: 800;
+            color: #b45309;
+            text-align: center;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+        }
+        
+        /* Historial */
+        .history-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #f1f5f9;
+        }
+        
+        .history-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+        
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #06b6d4;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .history-item-parcial {
+            font-weight: 700;
+            color: #06b6d4;
+            font-size: 16px;
+        }
+        
+        .history-item-time {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .history-item-details {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #475569;
+        }
+        
+        /* Notificaciones */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideInRight 0.3s ease;
+            z-index: 1000;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+        
+        .notification.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .notification.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .scanner-icon {
+            font-size: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="scanner-icon">📦</span>
+                ABASTECER AREA BLANCA
+            </h1>
+            <p>Sistema de respuesta rápida</p>
+            <div class="status-badge disconnected" id="status-badge">
+                🔴 Desconectado
+            </div>
+        </div>
+        
+        <form id="form-buscar">
+            <div class="form-group">
+                <label for="linea">Línea de Producción</label>
+                <select id="linea" required>
+                    <option value="">Seleccione una línea...</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="orden">Orden de Producción / Parcial</label>
+                <div class="input-icon">
+                    <input 
+                        type="text" 
+                        id="orden" 
+                        placeholder="Escanee código o escriba orden..."
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+                <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">
+                    💡 Use el lector de código de barras o escriba manualmente
+                </small>
+            </div>
+            
+            <!-- Panel de solicitud encontrada (oculto por defecto) -->
+            <div class="solicitud-panel" id="solicitud-panel">
+                <div class="titulo">
+                    <span>⚠️</span>
+                    <span>SOLICITUD ACTIVA</span>
+                </div>
+                <div class="info">
+                    <strong>Línea:</strong> <span id="sol-linea">—</span>
+                </div>
+                <div class="info">
+                    <strong>Parcial:</strong> <span id="sol-parcial">—</span>
+                </div>
+                <div class="info">
+                    <strong>Solicitado hace:</strong>
+                </div>
+                <div class="tiempo" id="sol-tiempo">00:00</div>
+            </div>
+            
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary" id="btn-abastecer">
+                    <span>✅ Abastecer</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-limpiar">
+                    🔄 Limpiar
+                </button>
+            </div>
+        </form>
+        
+        <div class="history-section">
+            <div class="history-title">📋 Últimos Abastecimientos</div>
+            <div class="history-list" id="history-list">
+                <p style="text-align: center; color: #94a3b8; padding: 20px;">
+                    Sin abastecimientos recientes...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // INICIALIZACIÓN DE FIREBASE
+        // ============================================
+        let db = null;
+        let auth = null;
+        let isConnected = false;
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvvv7A9y91tyCC8fn26NZy9AlLOXultSg",
+            authDomain: "vidrio-71ef2.firebaseapp.com",
+            databaseURL: "https://vidrio-71ef2-default-rtdb.firebaseio.com",
+            projectId: "vidrio-71ef2",
+            storageBucket: "vidrio-71ef2.firebasestorage.app",
+            messagingSenderId: "739643613018",
+            appId: "1:739643613018:web:0b60c554ded49f32f19d63",
+            measurementId: "G-1TTH9EP5N8"
+        };
+        
+        function initFirebase() {
+            return new Promise((resolve, reject) => {
+                const checkFirebase = () => {
+                    if (window.firebase && window.firebase.database && window.firebase.auth) {
+                        try {
+                            console.log('🔧 Inicializando Firebase...');
+                            const app = firebase.initializeApp(firebaseConfig);
+                            db = firebase.database(app);
+                            auth = firebase.auth(app);
+                            
+                            console.log('✅ Firebase inicializado');
+                            
+                            // Monitorear conexión
+                            db.ref('.info/connected').on('value', (snap) => {
+                                isConnected = snap.val() === true;
+                                updateConnectionStatus();
+                                if(isConnected) {
+                                    console.log('✅ CONECTADO A FIREBASE');
+                                } else {
+                                    console.log('❌ DESCONECTADO DE FIREBASE');
+                                }
+                            });
+                            
+                            // Autenticación anónima
+                            auth.onAuthStateChanged((user) => {
+                                if (user) {
+                                    console.log('✅ Usuario autenticado:', user.uid);
+                                    resolve(true);
+                                } else {
+                                    console.log('🔐 Autenticación anónima...');
+                                    auth.signInAnonymously()
+                                        .then((result) => {
+                                            console.log('✅ Autenticado:', result.user.uid);
+                                            resolve(true);
+                                        })
+                                        .catch((e) => {
+                                            console.warn('⚠️ Error en auth:', e.message);
+                                            resolve(true);
+                                        });
+                                }
+                            });
+                        } catch (e) {
+                            if (e.message.includes('duplicate')) {
+                                console.log('✅ Firebase ya inicializado');
+                                db = firebase.database();
+                                auth = firebase.auth();
+                                
+                                db.ref('.info/connected').on('value', (snap) => {
+                                    isConnected = snap.val() === true;
+                                    updateConnectionStatus();
+                                });
+                                
+                                resolve(true);
+                            } else {
+                                console.error('❌ Error:', e);
+                                reject(e);
+                            }
+                        }
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+        
+        // ============================================
+        // ELEMENTOS DEL DOM
+        // ============================================
+        const formBuscar = document.getElementById('form-buscar');
+        const lineaSelect = document.getElementById('linea');
+        const ordenInput = document.getElementById('orden');
+        const btnAbastecer = document.getElementById('btn-abastecer');
+        const btnLimpiar = document.getElementById('btn-limpiar');
+        const statusBadge = document.getElementById('status-badge');
+        const solicitudPanel = document.getElementById('solicitud-panel');
+        const historyList = document.getElementById('history-list');
+        
+        // Variables para la solicitud encontrada
+        let solicitudActual = null;
+        let solicitudPath = null;
+        let tiempoInterval = null;
+        
+        // ============================================
+        // CARGAR LÍNEAS ACTIVAS
+        // ============================================
+        function loadActiveLines() {
+            try {
+                const linesData = JSON.parse(localStorage.getItem('pk_lines') || '[]');
+                const activeLines = linesData.filter(line => line.active !== false);
+                
+                console.log('📋 Líneas activas cargadas:', activeLines);
+                
+                // Limpiar opciones existentes
+                while(lineaSelect.options.length > 1) {
+                    lineaSelect.remove(1);
+                }
+                
+                if(activeLines.length > 0) {
+                    activeLines.forEach(line => {
+                        const option = document.createElement('option');
+                        option.value = line.name;
+                        option.textContent = line.name;
+                        lineaSelect.appendChild(option);
+                    });
+                    console.log(`✅ ${activeLines.length} líneas activas agregadas`);
+                } else {
+                    // Líneas por defecto
+                    const defaultLines = ['PKB1', 'PKB2', 'PKB3', 'PKB4', 'PKB5', 'PKB6', 'JVH2', 'MAQ', 'EYS'];
+                    defaultLines.forEach(lineName => {
+                        const option = document.createElement('option');
+                        option.value = lineName;
+                        option.textContent = lineName;
+                        lineaSelect.appendChild(option);
+                    });
+                    console.log('⚠️ Usando líneas por defecto');
+                }
+            } catch(e) {
+                console.error('❌ Error cargando líneas:', e);
+            }
+        }
+        
+        // ============================================
+        // ACTUALIZAR ESTADO DE CONEXIÓN
+        // ============================================
+        function updateConnectionStatus() {
+            if(isConnected) {
+                statusBadge.textContent = '🟢 Conectado';
+                statusBadge.className = 'status-badge connected';
+            } else {
+                statusBadge.textContent = '🔴 Desconectado';
+                statusBadge.className = 'status-badge disconnected';
+            }
+        }
+        
+        // ============================================
+        // NOTIFICACIONES
+        // ============================================
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideDown 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // ============================================
+        // BUSCAR SOLICITUD EN TIEMPO REAL
+        // ============================================
+        let currentListener = null;
+        
+        function buscarSolicitud(linea, parcial) {
+            if(!db || !isConnected) {
+                solicitudPanel.classList.remove('visible');
+                return;
+            }
+            
+            console.log(`🔍 Buscando solicitud: ${linea} - ${parcial}`);
+            
+            // Limpiar búsqueda anterior
+            if(tiempoInterval) {
+                clearInterval(tiempoInterval);
+                tiempoInterval = null;
+            }
+            
+            // Desactivar listener anterior
+            if(currentListener) {
+                currentListener.off();
+                currentListener = null;
+            }
+            
+            // Escuchar en tiempo real
+            const solicitudRef = db.ref(`solicitudes/${linea}`);
+            currentListener = solicitudRef;
+            
+            solicitudRef.on('value', (snap) => {
+                const data = snap.val();
+                solicitudActual = null;
+                solicitudPath = null;
+                
+                if(data) {
+                    // Buscar el parcial
+                    for(const [key, value] of Object.entries(data)) {
+                        if(value && typeof value === 'object') {
+                            if(value.parcial === parcial || value.name === parcial || key === parcial) {
+                                solicitudActual = value;
+                                solicitudPath = `solicitudes/${linea}/${key}`;
+                                console.log(`✅ Solicitud encontrada: ${solicitudPath}`);
+                                mostrarSolicitud(linea, parcial, value.requestedAt || Date.now());
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                // No se encontró - ocultar panel
+                console.log(`❌ Solicitud no encontrada o ya fue abastecida`);
+                ocultarSolicitud();
+            });
+        }
+        
+        // ============================================
+        // MOSTRAR SOLICITUD ENCONTRADA
+        // ============================================
+        function mostrarSolicitud(linea, parcial, requestedAt) {
+            document.getElementById('sol-linea').textContent = linea;
+            document.getElementById('sol-parcial').textContent = parcial;
+            solicitudPanel.classList.add('visible');
+            
+            // Actualizar tiempo cada segundo
+            if(tiempoInterval) clearInterval(tiempoInterval);
+            
+            function actualizarTiempo() {
+                const ahora = Date.now();
+                const diff = ahora - requestedAt;
+                const minutos = Math.floor(diff / 60000);
+                const segundos = Math.floor((diff % 60000) / 1000);
+                document.getElementById('sol-tiempo').textContent = 
+                    `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+            }
+            
+            actualizarTiempo();
+            tiempoInterval = setInterval(actualizarTiempo, 1000);
+        }
+        
+        // ============================================
+        // OCULTAR SOLICITUD
+        // ============================================
+        function ocultarSolicitud() {
+            solicitudPanel.classList.remove('visible');
+            if(tiempoInterval) {
+                clearInterval(tiempoInterval);
+                tiempoInterval = null;
+            }
+        }
+        
+        // ============================================
+        // EVENTOS DE FORMULARIO
+        // ============================================
+        
+        // Cuando cambian línea u orden, buscar solicitud
+        lineaSelect.addEventListener('change', () => {
+            const linea = lineaSelect.value.trim();
+            const parcial = ordenInput.value.trim().toUpperCase();
+            
+            if(linea && parcial) {
+                buscarSolicitud(linea, parcial);
+            } else {
+                ocultarSolicitud();
+            }
+            
+            ordenInput.focus();
+        });
+        
+        ordenInput.addEventListener('input', () => {
+            const linea = lineaSelect.value.trim();
+            const parcial = ordenInput.value.trim().toUpperCase();
+            
+            if(linea && parcial) {
+                buscarSolicitud(linea, parcial);
+            } else {
+                ocultarSolicitud();
+            }
+        });
+        
+        // Limpiar formulario
+        btnLimpiar.addEventListener('click', () => {
+            formBuscar.reset();
+            ocultarSolicitud();
+            
+            // Desactivar listener actual
+            if(currentListener) {
+                currentListener.off();
+                currentListener = null;
+            }
+            
+            lineaSelect.focus();
+        });
+        
+        // ============================================
+        // SUBMIT: ABASTECER
+        // ============================================
+        formBuscar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if(!isConnected || !db) {
+                showNotification('❌ Sin conexión a Firebase', 'error');
+                return;
+            }
+            
+            const linea = lineaSelect.value.trim();
+            const parcial = ordenInput.value.trim().toUpperCase();
+            
+            if(!linea || !parcial) {
+                showNotification('❌ Complete todos los campos', 'error');
+                return;
+            }
+            
+            // Deshabilitar botón
+            btnAbastecer.disabled = true;
+            btnAbastecer.innerHTML = '<div class="loading"></div><span>Procesando...</span>';
+            
+            try {
+                console.log(`📦 Abasteciendo: ${linea} - ${parcial}`);
+                
+                const now = Date.now();
+                const fechaActual = new Date().toLocaleDateString('es-ES');
+                const horaActual = new Date().toLocaleTimeString('es-ES');
+                
+                // Buscar solicitud
+                const solicitudesSnap = await db.ref('solicitudes').once('value');
+                const solicitudesData = solicitudesSnap.val() || {};
+                
+                let solicitudEncontrada = null;
+                let solicitudPathFinal = null;
+                
+                if(solicitudesData[linea]) {
+                    const lineaSolicitudes = solicitudesData[linea];
+                    
+                    for(const [key, value] of Object.entries(lineaSolicitudes)) {
+                        if(value && typeof value === 'object') {
+                            if(value.parcial === parcial || value.name === parcial || key === parcial) {
+                                solicitudEncontrada = value;
+                                solicitudPathFinal = `solicitudes/${linea}/${key}`;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if(solicitudEncontrada) {
+                    // ===== SOLICITUD ENCONTRADA =====
+                    console.log('✅ Abasteciendo solicitud existente...');
+                    
+                    const requestedAt = solicitudEncontrada.requestedAt || now;
+                    const duration = now - requestedAt;
+                    
+                    // OPERACIÓN ATÓMICA: Ejecutar todas las operaciones en Firebase
+                    const updates = {};
+                    
+                    // 1. Eliminar solicitud (detiene tiempo en todos los dispositivos)
+                    updates[`solicitudes/${linea}/${solicitudPathFinal.split('/').pop()}`] = null;
+                    console.log(`🗑️ Preparando eliminación de solicitud: ${solicitudPathFinal}`);
+                    
+                    // 2. Actualizar kanban_estado (quitar el parcial)
+                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
+                    const kanbanArray = kanbanSnap.val() || [];
+                    const index = kanbanArray.findIndex(p => p === parcial);
+                    if(index !== -1) {
+                        kanbanArray.splice(index, 1);
+                        updates[`kanban_estado/${linea}`] = kanbanArray;
+                        console.log(`📦 Preparando remoción de kanban_estado/${linea}`);
+                    }
+                    
+                    // 3. Guardar en abastecimientos/{line}
+                    const abastecimientoKey = db.ref(`abastecimientos/${linea}`).push().key;
+                    const abastecimientoData = {
+                        parcial: parcial,
+                        linea: linea,
+                        fecha: fechaActual,
+                        hora: horaActual,
+                        requestedAt: requestedAt,
+                        suppliedAt: now,
+                        duration: duration,
+                        timestamp: now
+                    };
+                    updates[`abastecimientos/${linea}/${abastecimientoKey}`] = abastecimientoData;
+                    
+                    // 4. Guardar en historial
+                    const historialKey = db.ref('historial').push().key;
+                    const historialData = {
+                        name: parcial,
+                        line: linea,
+                        requestedAt: requestedAt,
+                        suppliedAt: now,
+                        duration: duration
+                    };
+                    updates[`historial/${historialKey}`] = historialData;
+                    
+                    // EJECUTAR TODAS LAS ACTUALIZACIONES DE UNA VEZ (atómico)
+                    console.log('🚀 Ejecutando actualización atómica en Firebase...');
+                    await db.ref().update(updates);
+                    console.log('✅ Actualización completada - sincronizado en todos los dispositivos');
+                    
+                    // Mostrar notificación con tiempo
+                    const durMin = Math.floor(duration / 60000);
+                    const durSec = Math.floor((duration % 60000) / 1000);
+                    const durText = durMin > 0 ? `${durMin}m ${durSec}s` : `${durSec}s`;
+                    
+                    showNotification(`✅ ${parcial} abastecido en ${durText}`, 'success');
+                    
+                } else {
+                    // ===== SIN SOLICITUD (Abastecimiento directo) =====
+                    console.log('⚡ Abastecimiento directo...');
+                    
+                    // OPERACIÓN ATÓMICA para abastecimiento directo
+                    const updates = {};
+                    
+                    // 1. Agregar a kanban_estado (al final)
+                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
+                    const kanbanArray = kanbanSnap.val() || [];
+                    kanbanArray.push(parcial);
+                    updates[`kanban_estado/${linea}`] = kanbanArray;
+                    
+                    // 2. Guardar en abastecimientos/{line}
+                    const abastecimientoKey = db.ref(`abastecimientos/${linea}`).push().key;
+                    const abastecimientoData = {
+                        parcial: parcial,
+                        linea: linea,
+                        fecha: fechaActual,
+                        hora: horaActual,
+                        requestedAt: now,
+                        suppliedAt: now,
+                        duration: 0,
+                        timestamp: now,
+                        direct: true
+                    };
+                    updates[`abastecimientos/${linea}/${abastecimientoKey}`] = abastecimientoData;
+                    
+                    // 3. Guardar en historial
+                    const historialKey = db.ref('historial').push().key;
+                    const historialData = {
+                        name: parcial,
+                        line: linea,
+                        requestedAt: now,
+                        suppliedAt: now,
+                        duration: 0
+                    };
+                    updates[`historial/${historialKey}`] = historialData;
+                    
+                    // EJECUTAR TODAS LAS ACTUALIZACIONES DE UNA VEZ (atómico)
+                    console.log('🚀 Ejecutando actualización atómica (directo)...');
+                    await db.ref().update(updates);
+                    console.log('✅ Abastecimiento directo completado - sincronizado');
+                    
+                    showNotification(`✅ ${parcial} abastecido (directo)`, 'success');
+                }
+                
+                // Limpiar formulario
+                ordenInput.value = '';
+                ocultarSolicitud();
+                ordenInput.focus();
+                
+            } catch(error) {
+                console.error('❌ Error al abastecer:', error);
+                showNotification('❌ Error al abastecer: ' + error.message, 'error');
+            } finally {
+                // Rehabilitar botón
+                btnAbastecer.disabled = false;
+                btnAbastecer.innerHTML = '<span>✅</span><span>ABASTECER AHORA</span>';
+            }
+        });
+        
+        // ============================================
+        // CARGAR HISTORIAL EN TIEMPO REAL
+        // ============================================
+        function loadRecentHistory() {
+            if(!db) return;
+            
+            // Escuchar cambios en historial en tiempo real
+            db.ref('historial').orderByChild('suppliedAt').limitToLast(20).on('value', snap => {
+                const data = snap.val();
+                if(!data) {
+                    historyList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Sin abastecimientos recientes...</p>';
+                    return;
+                }
+                
+                // Convertir a array y ordenar
+                const items = Object.values(data).sort((a, b) => (b.suppliedAt || 0) - (a.suppliedAt || 0));
+                
+                if(items.length === 0) {
+                    historyList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Sin abastecimientos recientes...</p>';
+                    return;
+                }
+                
+                historyList.innerHTML = items.map(item => {
+                    const time = new Date(item.suppliedAt || 0).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const durMs = item.duration || 0;
+                    const durMin = Math.floor(durMs / 60000);
+                    const durSec = Math.floor((durMs % 60000) / 1000);
+                    const durText = durMin > 0 ? `${durMin}m ${durSec}s` : `${durSec}s`;
+                    
+                    return `
+                        <div class="history-item">
+                            <div class="history-item-header">
+                                <div class="history-item-parcial">📦 ${item.name || '—'}</div>
+                                <div class="history-item-time">${time}</div>
+                            </div>
+                            <div class="history-item-details">
+                                <span>📍 ${item.line || '—'}</span>
+                                <span>⏱️ ${durText}</span>
+                                ${item.duration === 0 ? '<span style="color: #f59e0b;">⚡ Directo</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+        
+        // ============================================
+        // SOPORTE PARA SCANNER DE CÓDIGO DE BARRAS
+        // ============================================
+        let barcodeBuffer = '';
+        let barcodeTimeout = null;
+        
+        document.addEventListener('keypress', (e) => {
+            // Si el input de orden NO tiene foco, capturar para scanner
+            if(document.activeElement !== ordenInput) {
+                // Limpiar timeout anterior
+                clearTimeout(barcodeTimeout);
+                
+                // Agregar caracter al buffer
+                if(e.key.length === 1) {
+                    barcodeBuffer += e.key;
+                }
+                
+                // Detectar Enter (fin de escaneo)
+                if(e.key === 'Enter' && barcodeBuffer.length > 0) {
+                    ordenInput.value = barcodeBuffer.toUpperCase();
+                    ordenInput.focus();
+                    
+                    // Disparar evento input para buscar solicitud
+                    ordenInput.dispatchEvent(new Event('input'));
+                    
+                    barcodeBuffer = '';
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Resetear buffer después de 100ms de inactividad
+                barcodeTimeout = setTimeout(() => {
+                    barcodeBuffer = '';
+                }, 100);
+            }
+        });
+        
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Iniciando aplicación móvil...');
+            
+            // Cargar líneas activas
+            loadActiveLines();
+            
+            // Inicializar Firebase
+            initFirebase().then(() => {
+                console.log('🎉 Sistema móvil listo');
+                loadRecentHistory();
+            }).catch(e => {
+                console.error('💥 Error fatal:', e);
+                showNotification('Error crítico de Firebase', 'error');
+            });
+            
+            // Escuchar cambios en localStorage
+            window.addEventListener('storage', (e) => {
+                if(e.key === 'pk_lines') {
+                    console.log('🔄 Líneas actualizadas, recargando...');
+                    loadActiveLines();
+                }
+            });
+            
+            // Focus inicial
+            lineaSelect.focus();
+        });
+    </script>
+</body>
+</html>
