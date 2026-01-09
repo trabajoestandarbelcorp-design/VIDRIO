@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Abastecedor Móvil - PK Vidrio</title>
+    <title>ABASTECER PARCIALES A AREA BLANCA</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Firebase SDK -->
@@ -81,6 +81,27 @@
         .status-badge.disconnected {
             background: #fee2e2;
             color: #991b1b;
+        }
+
+        .control-panel {
+            margin-top: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #0ea5e9;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            box-shadow: 0 6px 16px rgba(14,165,233,0.35);
+        }
+
+        .control-panel .count {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 10px;
+            border-radius: 10px;
+            min-width: 36px;
+            text-align: center;
         }
         
         .form-group {
@@ -358,11 +379,15 @@
         <div class="header">
             <h1>
                 <span class="scanner-icon">📦</span>
-                ABASTECER AREA BLANCA
+                ABASTECER PARCIALES A AREA BLANCA
             </h1>
             <p>Sistema de respuesta rápida</p>
             <div class="status-badge disconnected" id="status-badge">
                 🔴 Desconectado
+            </div>
+            <div class="control-panel" id="panel-solicitudes" style="display:none;">
+                <span>Solicitudes activas</span>
+                <span class="count" id="solicitudes-count">0</span>
             </div>
         </div>
         
@@ -383,8 +408,10 @@
                         placeholder="Escanee código o escriba orden..."
                         required
                         autocomplete="off"
+                        list="parciales-datalist"
                     >
                 </div>
+                <datalist id="parciales-datalist"></datalist>
                 <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">
                     💡 Use el lector de código de barras o escriba manualmente
                 </small>
@@ -519,16 +546,59 @@
         const formBuscar = document.getElementById('form-buscar');
         const lineaSelect = document.getElementById('linea');
         const ordenInput = document.getElementById('orden');
+        const parcialesDataList = document.getElementById('parciales-datalist');
         const btnAbastecer = document.getElementById('btn-abastecer');
         const btnLimpiar = document.getElementById('btn-limpiar');
         const statusBadge = document.getElementById('status-badge');
         const solicitudPanel = document.getElementById('solicitud-panel');
         const historyList = document.getElementById('history-list');
+        const panelSolicitudes = document.getElementById('panel-solicitudes');
+        const solicitudesCount = document.getElementById('solicitudes-count');
+
+        // Lista fija de líneas (igual que VersionPDT)
+        const DEFAULT_LINE_ORDER = ['PKB1', 'PKB2', 'PKB3', 'PKB4', 'PKB5', 'PKB6', 'JVH2', 'MAQ', 'EYS', 'ESMALTES'];
+
+        function setLineOptions(lineNames) {
+            const currentValue = lineaSelect.value;
+            // limpiar todas menos placeholder
+            while(lineaSelect.options.length > 1) {
+                lineaSelect.remove(1);
+            }
+            lineNames.forEach(name => {
+                const val = String(name || '').trim().toUpperCase();
+                if(!val) return;
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                lineaSelect.appendChild(opt);
+            });
+            // restaurar selección si sigue presente
+            const hasCurrent = lineNames.includes(currentValue);
+            lineaSelect.value = hasCurrent ? currentValue : '';
+        }
+
+        function mergeLineSets(...lists) {
+            const seen = new Set();
+            const result = [];
+            const addList = (arr) => {
+                (arr || []).forEach(item => {
+                    const val = String(item || '').trim().toUpperCase();
+                    if(!val || seen.has(val)) return;
+                    seen.add(val);
+                    result.push(val);
+                });
+            };
+            addList(DEFAULT_LINE_ORDER);
+            lists.forEach(addList);
+            return result;
+        }
         
         // Variables para la solicitud encontrada
         let solicitudActual = null;
         let solicitudPath = null;
         let tiempoInterval = null;
+        let solicitudLineListener = null;
+        let solicitudesCountListener = null;
         
         // ============================================
         // CARGAR LÍNEAS ACTIVAS
@@ -536,37 +606,96 @@
         function loadActiveLines() {
             try {
                 const linesData = JSON.parse(localStorage.getItem('pk_lines') || '[]');
-                const activeLines = linesData.filter(line => line.active !== false);
-                
-                console.log('📋 Líneas activas cargadas:', activeLines);
-                
-                // Limpiar opciones existentes
-                while(lineaSelect.options.length > 1) {
-                    lineaSelect.remove(1);
-                }
-                
-                if(activeLines.length > 0) {
-                    activeLines.forEach(line => {
-                        const option = document.createElement('option');
-                        option.value = line.name;
-                        option.textContent = line.name;
-                        lineaSelect.appendChild(option);
-                    });
-                    console.log(`✅ ${activeLines.length} líneas activas agregadas`);
-                } else {
-                    // Líneas por defecto
-                    const defaultLines = ['PKB1', 'PKB2', 'PKB3', 'PKB4', 'PKB5', 'PKB6', 'JVH2', 'MAQ', 'EYS'];
-                    defaultLines.forEach(lineName => {
-                        const option = document.createElement('option');
-                        option.value = lineName;
-                        option.textContent = lineName;
-                        lineaSelect.appendChild(option);
-                    });
-                    console.log('⚠️ Usando líneas por defecto');
-                }
+                const activeLines = linesData.filter(line => line.active !== false).map(line => line.name);
+                const baseLines = activeLines.length > 0 ? activeLines : DEFAULT_LINE_ORDER;
+                const ordered = mergeLineSets(baseLines);
+                setLineOptions(ordered);
+                console.log('📋 Líneas cargadas (localStorage/default):', ordered);
             } catch(e) {
                 console.error('❌ Error cargando líneas:', e);
+                setLineOptions(DEFAULT_LINE_ORDER);
             }
+        }
+
+        // Escuchar líneas en monitor de Firebase y fusionar
+        function subscribeMonitorLines() {
+            if(!db) return;
+            db.ref('monitor').on('value', snap => {
+                const data = snap.val() || {};
+                const monitorLines = Object.keys(data).map(key => String(key || '').toUpperCase()).filter(Boolean);
+                const currentLines = Array.from(lineaSelect.options).slice(1).map(opt => opt.value);
+                const merged = mergeLineSets(currentLines, monitorLines);
+                setLineOptions(merged);
+                console.log('🔄 Líneas actualizadas desde monitor:', merged);
+            });
+        }
+
+        function subscribeSolicitudesCount() {
+            if(!db) return;
+            if(solicitudesCountListener) {
+                solicitudesCountListener.off();
+                solicitudesCountListener = null;
+            }
+            const refSol = db.ref('solicitudes');
+            solicitudesCountListener = refSol;
+            refSol.on('value', snap => {
+                const data = snap.val() || {};
+                let count = 0;
+                Object.values(data).forEach(lineVal => {
+                    if(lineVal && typeof lineVal === 'object') {
+                        Object.values(lineVal).forEach(entry => {
+                            if(entry && typeof entry === 'object') count += 1;
+                            else if(entry != null) count += 1;
+                        });
+                    } else if(lineVal != null) {
+                        count += 1;
+                    }
+                });
+                solicitudesCount.textContent = count;
+                panelSolicitudes.style.display = 'inline-flex';
+            });
+        }
+
+        function setParcialOptions(list) {
+            if(!parcialesDataList) return;
+            parcialesDataList.innerHTML = '';
+            const uniques = new Set();
+            (list || []).forEach(item => {
+                const val = String(item || '').trim().toUpperCase();
+                if(!val || uniques.has(val)) return;
+                uniques.add(val);
+                const opt = document.createElement('option');
+                opt.value = val;
+                parcialesDataList.appendChild(opt);
+            });
+        }
+
+        function subscribeParcialesForLine(linea) {
+            if(solicitudLineListener) {
+                solicitudLineListener.off();
+                solicitudLineListener = null;
+            }
+            setParcialOptions([]);
+            if(!db || !linea) return;
+
+            const refSolicitudes = db.ref(`solicitudes/${linea}`);
+            solicitudLineListener = refSolicitudes;
+            refSolicitudes.on('value', snap => {
+                const data = snap.val();
+                const lista = [];
+                if(data && typeof data === 'object') {
+                    Object.values(data).forEach(val => {
+                        if(val && typeof val === 'object') {
+                            const maybe = val.parcial || val.name || val.order || val.orden || val.op || val.pk;
+                            if(maybe) lista.push(maybe);
+                        } else if(val != null) {
+                            lista.push(val);
+                        }
+                    });
+                }
+                setParcialOptions(lista);
+                console.log(`📄 Parciales solicitados para ${linea}:`, lista);
+            });
         }
         
         // ============================================
@@ -696,6 +825,8 @@
             const linea = lineaSelect.value.trim();
             const parcial = ordenInput.value.trim().toUpperCase();
             
+            subscribeParcialesForLine(linea);
+
             if(linea && parcial) {
                 buscarSolicitud(linea, parcial);
             } else {
@@ -726,6 +857,12 @@
                 currentListener.off();
                 currentListener = null;
             }
+
+            if(solicitudLineListener) {
+                solicitudLineListener.off();
+                solicitudLineListener = null;
+            }
+            setParcialOptions([]);
             
             lineaSelect.focus();
         });
@@ -795,17 +932,22 @@
                     updates[`solicitudes/${linea}/${solicitudPathFinal.split('/').pop()}`] = null;
                     console.log(`🗑️ Preparando eliminación de solicitud: ${solicitudPathFinal}`);
                     
-                    // 2. Actualizar kanban_estado (quitar el parcial)
+                    // 2. Actualizar kanban_estado y monitor (quitar el parcial)
                     const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
                     const kanbanArray = kanbanSnap.val() || [];
-                    const index = kanbanArray.findIndex(p => p === parcial);
+                    const target = String(parcial || '').trim().toUpperCase();
+                    const index = kanbanArray.findIndex(p => String(p || '').trim().toUpperCase() === target);
                     if(index !== -1) {
                         kanbanArray.splice(index, 1);
                         updates[`kanban_estado/${linea}`] = kanbanArray;
-                        console.log(`📦 Preparando remoción de kanban_estado/${linea}`);
+                        updates[`monitor/${linea}`] = kanbanArray;
+                        console.log(`📦 Preparando remoción de kanban/monitor ${linea}`);
                     }
+
+                    // 3. Limpiar solicitud_times de la línea
+                    updates[`solicitud_times/${linea}`] = null;
                     
-                    // 3. Guardar en abastecimientos/{line}
+                    // 4. Guardar en abastecimientos/{line}
                     const abastecimientoKey = db.ref(`abastecimientos/${linea}`).push().key;
                     const abastecimientoData = {
                         parcial: parcial,
@@ -819,7 +961,7 @@
                     };
                     updates[`abastecimientos/${linea}/${abastecimientoKey}`] = abastecimientoData;
                     
-                    // 4. Guardar en historial
+                    // 5. Guardar en historial
                     const historialKey = db.ref('historial').push().key;
                     const historialData = {
                         name: parcial,
@@ -849,11 +991,12 @@
                     // OPERACIÓN ATÓMICA para abastecimiento directo
                     const updates = {};
                     
-                    // 1. Agregar a kanban_estado (al final)
+                    // 1. Agregar a kanban_estado y monitor (al final)
                     const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
                     const kanbanArray = kanbanSnap.val() || [];
                     kanbanArray.push(parcial);
                     updates[`kanban_estado/${linea}`] = kanbanArray;
+                    updates[`monitor/${linea}`] = kanbanArray;
                     
                     // 2. Guardar en abastecimientos/{line}
                     const abastecimientoKey = db.ref(`abastecimientos/${linea}`).push().key;
@@ -1002,6 +1145,8 @@
             // Inicializar Firebase
             initFirebase().then(() => {
                 console.log('🎉 Sistema móvil listo');
+                subscribeMonitorLines();
+                subscribeSolicitudesCount();
                 loadRecentHistory();
             }).catch(e => {
                 console.error('💥 Error fatal:', e);
