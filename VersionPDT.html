@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abastecedor Kanban - PK Vidrio</title>
+    <title>ABASTECEDOR DE PARCIALES KANBAN DE DESCARTONADO DE VIDRIO</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Firebase SDK (compat version para compatibilidad con index.html) -->
@@ -304,7 +304,7 @@
         <div class="header">
             <h1>
                 <span class="scanner-icon">📦</span>
-                Abastecedor Kanban
+                ABASTECEDOR DE PARCIALES KANBAN DE DESCARTONADO DE VIDRIO
             </h1>
             <p>Sistema de abastecimiento en tiempo real</p>
             <div class="status-badge disconnected" id="status-badge">
@@ -315,10 +315,19 @@
         <form id="abastecimiento-form">
             <div class="form-group">
                 <label for="linea">Línea de Producción</label>
-                <select id="linea" required>
-                    <option value="">Seleccione una línea...</option>
-                    <!-- Las líneas se cargarán dinámicamente desde localStorage -->
-                </select>
+                <input
+                    list="lineas-datalist"
+                    id="linea"
+                    placeholder="Escribe o selecciona una línea..."
+                    autocomplete="off"
+                    required
+                >
+                <datalist id="lineas-datalist">
+                    <!-- Opciones cargadas de lista fija -->
+                </datalist>
+                <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">
+                    Elige de la lista o escribe una nueva línea si aún no existe.
+                </small>
             </div>
             
             <div class="form-group">
@@ -449,43 +458,25 @@
         // ============================================
         function loadActiveLines() {
             try {
-                const linesData = JSON.parse(localStorage.getItem('pk_lines') || '[]');
-                const activeLines = linesData.filter(line => line.active !== false);
-                
-                console.log('📋 Líneas activas cargadas:', activeLines);
-                
-                const lineaSelect = document.getElementById('linea');
-                if(!lineaSelect) return;
-                
-                // Limpiar opciones existentes (mantener la primera opción "Seleccione...")
-                while(lineaSelect.options.length > 1) {
-                    lineaSelect.remove(1);
-                }
-                
-                // Agregar líneas activas
-                if(activeLines.length > 0) {
-                    activeLines.forEach(line => {
-                        const option = document.createElement('option');
-                        option.value = line.name;
-                        option.textContent = line.name;
-                        lineaSelect.appendChild(option);
-                    });
-                    console.log(`✅ ${activeLines.length} líneas activas agregadas al selector`);
-                } else {
-                    // Si no hay líneas en localStorage, usar líneas por defecto
-                    const defaultLines = ['PKB1', 'PKB2', 'PKB3', 'PKB4', 'PKB5', 'PKB6', 'JVH2', 'MAQ', 'EYS'];
-                    defaultLines.forEach(lineName => {
-                        const option = document.createElement('option');
-                        option.value = lineName;
-                        option.textContent = lineName;
-                        lineaSelect.appendChild(option);
-                    });
-                    console.log('⚠️ No hay líneas en localStorage, usando líneas por defecto');
-                }
+                const activeLines = DEFAULT_LINE_ORDER.map(name => ({ name, active: true }));
+                console.log('📋 Líneas cargadas (lista fija):', activeLines);
+
+                if(!lineaDataList) return;
+                lineaDataList.innerHTML = '';
+                activeLines.forEach(line => {
+                    const opt = document.createElement('option');
+                    opt.value = line.name;
+                    lineaDataList.appendChild(opt);
+                });
+                console.log(`✅ ${activeLines.length} líneas cargadas en datalist`);
             } catch(e) {
                 console.error('❌ Error cargando líneas:', e);
             }
         }
+
+        // Lista fija para selector de líneas
+        const DEFAULT_LINE_ORDER = ['PKB1', 'PKB2', 'PKB3', 'PKB4', 'PKB5', 'PKB6', 'JVH2', 'MAQ', 'EYS', 'ESMALTES'];
+
         
         // Iniciar Firebase cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', () => {
@@ -495,6 +486,7 @@
             // Luego inicializar Firebase
             initFirebase().then(() => {
                 console.log('🎉 Sistema listo');
+                loadActiveLines(); // lista fija inmediata
                 loadRecentHistory();
             }).catch(e => {
                 console.error('💥 Error fatal:', e);
@@ -512,12 +504,24 @@
         
         // Elementos del DOM
         const form = document.getElementById('abastecimiento-form');
-        const lineaSelect = document.getElementById('linea');
+        const lineaInput = document.getElementById('linea');
+        const lineaDataList = document.getElementById('lineas-datalist');
         const ordenInput = document.getElementById('orden');
         const btnAbastecer = document.getElementById('btn-abastecer');
         const btnLimpiar = document.getElementById('btn-limpiar');
         const statusBadge = document.getElementById('status-badge');
         const historyList = document.getElementById('history-list');
+
+        // Datalist ya permite escribir/seleccionar; no se requiere typeahead manual
+
+        // Normaliza el parcial: solo dígitos, sin ceros a la izquierda, máx 8 dígitos
+        function normalizeParcialValue(value){
+            const digits = String(value || '').replace(/\D+/g, '');
+            const noZeros = digits.replace(/^0+/, '');
+            const cleaned = noZeros || '0';
+            const limited = cleaned.slice(0, 8);
+            return { value: limited, truncated: cleaned.length > 8 };
+        }
         
         // Actualizar estado de conexión
         function updateConnectionStatus() {
@@ -549,14 +553,14 @@
             ordenInput.focus();
         });
         
-        // Auto-focus en input de orden cuando se selecciona línea
-        lineaSelect.addEventListener('change', () => {
+        // Auto-focus en input de orden cuando se ingresa línea
+        lineaInput.addEventListener('change', () => {
             ordenInput.focus();
         });
-        
+
         // Auto-focus inicial
         window.addEventListener('load', () => {
-            lineaSelect.focus();
+            lineaInput.focus();
         });
         
         // ============================================
@@ -570,11 +574,26 @@
                 return;
             }
             
-            const linea = lineaSelect.value.trim();
-            const parcial = ordenInput.value.trim().toUpperCase();
+            const lineaRaw = lineaInput.value || '';
+            const linea = lineaRaw.trim().toUpperCase();
+            const rawParcialInput = ordenInput.value;
+            const normalized = normalizeParcialValue(rawParcialInput);
+            const sanitizedParcial = normalized.value;
+            const parcial = sanitizedParcial.toUpperCase();
+            // Reflejar en el input la versión normalizada (sin ceros y máx 8 dígitos)
+            ordenInput.value = sanitizedParcial;
+            if(normalized.truncated){
+                showNotification('⚠️ Se limitaron a 8 dígitos la orden ingresada', 'error');
+            }
             
             if(!linea || !parcial) {
                 showNotification('❌ Complete todos los campos', 'error');
+                return;
+            }
+
+            // Validar que la línea exista en la lista fija
+            if(!DEFAULT_LINE_ORDER.includes(linea)) {
+                showNotification('❌ Línea no existe', 'error');
                 return;
             }
             
@@ -584,30 +603,121 @@
             
             try {
                 console.log(`🔍 Buscando solicitud para: ${linea} - ${parcial}`);
+
+                // Detectar solicitud "sin existencia" (missing-request) almacenada en localStorage
+                let missingRequest = null;
+                try {
+                    const missingMap = JSON.parse(localStorage.getItem('pk_missing_requests') || '{}');
+                    const arr = Array.isArray(missingMap[linea]) ? missingMap[linea] : [];
+                    const upperParcialNorm = sanitizedParcial.toUpperCase();
+                    missingRequest = arr.find(it => {
+                        const val = (it && (it.op || it.parcial || it.name)) ? String(it.op || it.parcial || it.name).trim().toUpperCase() : '';
+                        return val === upperParcialNorm;
+                    }) || null;
+                } catch(e) {
+                    console.warn('No se pudo leer pk_missing_requests', e);
+                }
                 
-                // PASO 1: Buscar en solicitudes (estructura de Firebase)
+                // PASO 1: Buscar solicitud compatible (tanto estructura por línea como global)
                 const solicitudesSnap = await db.ref('solicitudes').once('value');
                 const solicitudesData = solicitudesSnap.val() || {};
-                
+
                 let solicitudEncontrada = null;
                 let solicitudPath = null;
-                
-                // Buscar en la estructura: solicitudes/{line}/parcial
-                if(solicitudesData[linea]) {
+                let solicitudActivaEnLinea = null;
+                const upperLinea = linea.toUpperCase();
+                const upperParcial = parcial.toUpperCase();
+
+                // a) Estructura por línea (solicitudes/{linea}/{idx})
+                if(solicitudesData[linea] && typeof solicitudesData[linea] === 'object') {
                     const lineaSolicitudes = solicitudesData[linea];
-                    
-                    // Buscar por nombre exacto del parcial
                     for(const [key, value] of Object.entries(lineaSolicitudes)) {
-                        if(value && typeof value === 'object') {
-                            // Comparar con el nombre del parcial almacenado
-                            if(value.parcial === parcial || value.name === parcial || key === parcial) {
-                                solicitudEncontrada = value;
-                                solicitudPath = `solicitudes/${linea}/${key}`;
-                                console.log(`✅ Solicitud encontrada en: ${solicitudPath}`);
-                                break;
-                            }
+                        const valParcial = normalizeParcialValue(
+                            (value && typeof value === 'object')
+                                ? (value.parcial || value.name || value.order || value.orden || value.op || value.pk || key)
+                                : (value || key)
+                        ).value.toUpperCase();
+                        if(!solicitudActivaEnLinea && valParcial) {
+                            solicitudActivaEnLinea = { parcial: valParcial, key, raw: value };
+                        }
+                        if(!value || typeof value !== 'object') continue;
+                        if(valParcial === upperParcial) {
+                            solicitudEncontrada = value;
+                            solicitudPath = `solicitudes/${linea}/${key}`;
+                            console.log(`✅ Solicitud encontrada en estructura por línea: ${solicitudPath}`);
+                            break;
                         }
                     }
+                }
+
+                // b) Estructura global (push en /solicitudes con campos pk/line)
+                if(!solicitudEncontrada) {
+                    for(const [key, value] of Object.entries(solicitudesData)) {
+                        if(!value || typeof value !== 'object') continue;
+                        const valLinea = String(value.line || value.pk || '').toUpperCase();
+                        const valParcial = normalizeParcialValue(value.parcial || value.name || value.order || value.orden || value.op || value.pk || key).value.toUpperCase();
+                        if(!solicitudActivaEnLinea && valLinea === upperLinea) {
+                            solicitudActivaEnLinea = { parcial: valParcial, key, raw: value };
+                        }
+                        if(valLinea === upperLinea && valParcial === upperParcial) {
+                            solicitudEncontrada = value;
+                            solicitudPath = `solicitudes/${key}`;
+                            console.log(`✅ Solicitud encontrada en estructura global: ${solicitudPath}`);
+                            break;
+                        }
+                    }
+                }
+
+                // Si hay cualquier solicitud pendiente en la línea, bloquear abastecimiento desde VersionPDT
+                if(solicitudActivaEnLinea) {
+                    showNotification(`⚠️ En la línea ${linea} hay una solicitud pendiente. Abastézcala a área blanca antes de enviar otro parcial.`, 'error');
+                    return;
+                }
+
+                // Caso especial: existe solicitud "sin existencia" local. Convertirla en parcial solicitado (amarillo) manteniendo el tiempo original.
+                if(missingRequest) {
+                    console.log('🔁 Convirtiendo solicitud sin existencia a parcial solicitado...');
+                    const updates = {};
+                    const reqAt = missingRequest.requestedAt || Date.now();
+
+                    // Leer kanban actual y agregar al final
+                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
+                    const kanbanArray = kanbanSnap.val() || [];
+                    const newIndex = kanbanArray.length;
+                    kanbanArray.push(parcial);
+                    updates[`kanban_estado/${linea}`] = kanbanArray;
+                    updates[`monitor/${linea}`] = kanbanArray;
+
+                    // Crear solicitud en Firebase para que titile
+                    updates[`solicitudes/${linea}/${newIndex}`] = { parcial, requestedAt: reqAt };
+
+                    // Asegurar timestamp en solicitud_times (mantener el original si existe)
+                    const tsSnap = await db.ref(`solicitud_times/${linea}`).once('value');
+                    const tsVal = tsSnap.val();
+                    const finalReqAt = tsVal || reqAt;
+                    updates[`solicitud_times/${linea}`] = finalReqAt;
+
+                    await db.ref().update(updates);
+                    console.log('✅ Solicitud sin existencia convertida a parcial solicitado en kanban/monitor');
+
+                    // Limpiar la missing-request del localStorage y propagar a otras pestañas
+                    try {
+                        const missingMap = JSON.parse(localStorage.getItem('pk_missing_requests') || '{}');
+                        if(Array.isArray(missingMap[linea])) {
+                            missingMap[linea] = missingMap[linea].filter(it => {
+                                const val = (it && (it.op || it.parcial || it.name)) ? String(it.op || it.parcial || it.name).trim().toUpperCase() : '';
+                                return val !== sanitizedParcial.toUpperCase();
+                            });
+                            if(missingMap[linea].length === 0) delete missingMap[linea];
+                            localStorage.setItem('pk_missing_requests', JSON.stringify(missingMap));
+                            window.dispatchEvent(new StorageEvent('storage', { key: 'pk_missing_requests', newValue: JSON.stringify(missingMap) }));
+                        }
+                    } catch(e) { console.warn('No se pudo limpiar missing-request local', e); }
+
+                    showNotification(`✅ ${parcial} agregado como solicitado (antes sin existencia)`, 'success');
+                    ordenInput.value = '';
+                    ordenInput.focus();
+                    return;
                 }
                 
                 const now = Date.now();
@@ -621,9 +731,10 @@
                     const requestedAt = solicitudEncontrada.requestedAt || now;
                     const duration = now - requestedAt;
                     
-                    // PASO 2: Guardar en abastecimientos/{line}
+                    // PASO 2: Guardar abastecimiento (estructura única en /abastecimientos con campo line)
                     const abastecimientoData = {
                         parcial: parcial,
+                        line: linea,
                         fecha: fechaActual,
                         hora: horaActual,
                         requestedAt: requestedAt,
@@ -632,8 +743,8 @@
                         timestamp: now
                     };
                     
-                    await db.ref(`abastecimientos/${linea}`).push(abastecimientoData);
-                    console.log(`✅ Abastecimiento guardado en: abastecimientos/${linea}`);
+                    await db.ref('abastecimientos').push(abastecimientoData);
+                    console.log(`✅ Abastecimiento guardado en: abastecimientos (root)`);
                     
                     // PASO 3: Guardar en historial
                     const historialData = {
@@ -647,21 +758,25 @@
                     await db.ref('historial').push(historialData);
                     console.log('✅ Registrado en historial');
                     
-                    // PASO 4: Actualizar kanban_estado (quitar el parcial de la línea)
+                    // PASO 4: Actualizar monitor/kanban_estado (quitar el parcial de la línea)
                     const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
                     const kanbanArray = kanbanSnap.val() || [];
                     
-                    // Buscar índice del parcial en el array
-                    const index = kanbanArray.findIndex(p => p === parcial);
+                    const index = kanbanArray.findIndex(p => normalizeParcialValue(p).value.toUpperCase() === upperParcial);
                     if(index !== -1) {
                         kanbanArray.splice(index, 1);
-                        await db.ref(`kanban_estado/${linea}`).set(kanbanArray);
-                        console.log(`✅ Parcial removido de kanban_estado/${linea}`);
+                        await Promise.all([
+                            db.ref(`kanban_estado/${linea}`).set(kanbanArray),
+                            db.ref(`monitor/${linea}`).set(kanbanArray)
+                        ]);
+                        console.log(`✅ Parcial removido de monitor/kanban_estado/${linea}`);
                     }
                     
-                    // PASO 5: Eliminar solicitud
-                    await db.ref(solicitudPath).remove();
-                    console.log(`✅ Solicitud eliminada: ${solicitudPath}`);
+                    // PASO 5: Eliminar solicitud (según la estructura detectada)
+                    if(solicitudPath){
+                        await db.ref(solicitudPath).remove();
+                        console.log(`✅ Solicitud eliminada: ${solicitudPath}`);
+                    }
                     
                     // Mostrar notificación con tiempo
                     const durMin = Math.floor(duration / 60000);
@@ -674,9 +789,10 @@
                     // ===== CASO 2: SIN SOLICITUD (Abastecimiento directo) =====
                     console.log('📦 Abastecimiento directo (sin solicitud previa)...');
                     
-                    // PASO 2: Guardar en abastecimientos/{line}
+                    // PASO 2: Guardar abastecimiento (estructura única en /abastecimientos con campo line)
                     const abastecimientoData = {
                         parcial: parcial,
+                        line: linea,
                         fecha: fechaActual,
                         hora: horaActual,
                         requestedAt: now,
@@ -686,8 +802,8 @@
                         direct: true
                     };
                     
-                    await db.ref(`abastecimientos/${linea}`).push(abastecimientoData);
-                    console.log(`✅ Abastecimiento directo guardado en: abastecimientos/${linea}`);
+                    await db.ref('abastecimientos').push(abastecimientoData);
+                    console.log(`✅ Abastecimiento directo guardado en: abastecimientos (root)`);
                     
                     // PASO 3: Guardar en historial
                     const historialData = {
@@ -701,14 +817,16 @@
                     await db.ref('historial').push(historialData);
                     console.log('✅ Registrado en historial');
                     
-                    // PASO 4: Agregar a kanban_estado (ya que se abastece directamente)
+                    // PASO 4: Agregar a monitor/kanban_estado (ya que se abastece directamente)
                     const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
                     const kanbanArray = kanbanSnap.val() || [];
                     
-                    // Agregar el parcial al FINAL del array (push en lugar de unshift)
                     kanbanArray.push(parcial);
-                    await db.ref(`kanban_estado/${linea}`).set(kanbanArray);
-                    console.log(`✅ Parcial agregado al final de kanban_estado/${linea}`);
+                    await Promise.all([
+                        db.ref(`kanban_estado/${linea}`).set(kanbanArray),
+                        db.ref(`monitor/${linea}`).set(kanbanArray)
+                    ]);
+                    console.log(`✅ Parcial agregado al final de monitor/kanban_estado/${linea}`);
                     
                     showNotification(`✅ ${parcial} abastecido (directo)`, 'success');
                 }
@@ -729,23 +847,36 @@
         // Escuchar cambios en tiempo real del historial
         function loadRecentHistory() {
             if(!db) return;
-            
-            db.ref('abastecimientos').orderByChild('suppliedAt').limitToLast(10).on('value', snap => {
+
+            db.ref('abastecimientos').on('value', snap => {
                 const data = snap.val();
                 if(!data) {
                     historyList.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">Sin abastecimientos recientes...</p>';
                     return;
                 }
-                
-                const items = Object.values(data).sort((a, b) => (b.suppliedAt || 0) - (a.suppliedAt || 0));
-                
-                historyList.innerHTML = items.map(item => {
-                    const time = new Date(item.suppliedAt || 0).toLocaleTimeString('es-ES');
+
+                // Aplanar posibles estructuras (root o agrupado por línea)
+                const items = [];
+                Object.values(data).forEach(val => {
+                    if(val && typeof val === 'object' && (val.parcial || val.name || val.order)) {
+                        items.push(val);
+                    } else if(val && typeof val === 'object') {
+                        Object.values(val).forEach(inner => {
+                            if(inner && typeof inner === 'object') items.push(inner);
+                        });
+                    }
+                });
+
+                items.sort((a, b) => (b.suppliedAt || b.timestamp || 0) - (a.suppliedAt || a.timestamp || 0));
+                const limited = items.slice(0, 10);
+
+                historyList.innerHTML = limited.map(item => {
+                    const time = new Date(item.suppliedAt || item.timestamp || 0).toLocaleTimeString('es-ES');
                     const durMs = item.duration || 0;
                     const durMin = Math.floor(durMs / 60000);
                     const durSec = Math.floor((durMs % 60000) / 1000);
                     const durText = durMin > 0 ? `${durMin}m ${durSec}s` : `${durSec}s`;
-                    
+
                     return `
                         <div class="history-item">
                             <div class="history-item-header">
@@ -753,7 +884,7 @@
                                 <div class="history-item-time">${time}</div>
                             </div>
                             <div class="history-item-details">
-                                <span>📍 ${item.line || '—'}</span>
+                                <span>📍 ${(item.line || item.pk || '—')}</span>
                                 <span>⏱️ ${durText}</span>
                                 ${item.direct ? '<span style="color: #f59e0b;">⚡ Directo</span>' : ''}
                             </div>
