@@ -447,31 +447,6 @@
                 padding-bottom: 40px;
                 background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
             }
-
-            /* Vista móvil simplificada: sin títulos, solo botones y columnas */
-            .title { display: none !important; }
-            .floating-history { display: none !important; }
-            .controls { display: none !important; }
-
-            .top-controls {
-                display: grid !important;
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(2, auto);
-                gap: 10px;
-                width: 100%;
-                padding: 4px;
-            }
-            .top-controls button {
-                height: 62px;
-                font-size: 12px;
-                line-height: 1.1;
-                border-radius: 10px;
-                font-weight: 800;
-            }
-            #btn-anular-solicitud { grid-column: 3; grid-row: 1; }
-            #btn-entrada { grid-column: 1; grid-row: 2; }
-            #btn-salida { grid-column: 2; grid-row: 2; }
-            #btn-solicitar { grid-column: 3; grid-row: 2; }
             
             .title {
                 font-size: 14px;
@@ -502,6 +477,13 @@
             #btn-entrada { grid-column: 2; grid-row: 1; }
             #btn-salida { grid-column: 1; grid-row: 2; }
             #btn-solicitar { grid-column: 2; grid-row: 2; }
+            #btn-panel-control { 
+                grid-column: 1 / 3; 
+                grid-row: 3; 
+                height: 44px !important;
+                font-size: 11px !important;
+                padding: 8px !important;
+            }
             
             /* INDICADOR ESCLUSA LLENA - ULTRA PREMIUM */
             #esclusa-indicator {
@@ -842,28 +824,6 @@
                 gap: 5px;
                 padding-bottom: 15px;
             }
-
-            /* Mantener limpieza en móvil muy pequeño */
-            .title { display: none !important; }
-            .floating-history { display: none !important; }
-            .controls { display: none !important; }
-
-            .top-controls {
-                display: grid !important;
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(2, auto);
-                gap: 8px;
-                padding: 2px;
-            }
-            .top-controls button {
-                height: 58px;
-                font-size: 11px;
-                border-radius: 9px;
-            }
-            #btn-anular-solicitud { grid-column: 3; grid-row: 1; }
-            #btn-entrada { grid-column: 1; grid-row: 2; }
-            #btn-salida { grid-column: 2; grid-row: 2; }
-            #btn-solicitar { grid-column: 3; grid-row: 2; }
             
             .title {
                 font-size: 12px;
@@ -1819,29 +1779,17 @@ window.FirebaseSync = {
             }
       
             const now = new Date();
-            const requestTs = now.getTime();
             const entry = {
                 pk,
                 parcial,
                 fecha: now.toLocaleDateString('es-ES'),
                 hora: now.toLocaleTimeString('es-ES', { hour12: false }),
-                timestamp: now.toISOString(),
-                requestedAt: requestTs
+                timestamp: now.toISOString()
             };
       
             // Agregar a /solicitudes
             const ref = window.db.ref('solicitudes').push();
             await ref.set(entry);
-
-            // Guardar timestamp de solicitud para calcular duración en abastecimiento
-            try {
-                window.firebaseTimestampsCache = window.firebaseTimestampsCache || {};
-                window.firebaseTimestampsCache[pk] = requestTs;
-                localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache));
-                window.db.ref(`solicitud_times/${pk}`).set(requestTs).catch(()=>{});
-            } catch (cacheErr) {
-                console.warn('No se pudo registrar timestamp de solicitud en cache/Firebase', cacheErr);
-            }
       
             console.log('✅ SOLICITUD GUARDADA EN FIREBASE:', entry);
             return { success: true, entry };
@@ -2439,7 +2387,25 @@ try{
         <!-- Export moved to internal control panel -->
         <!-- <button id="export-history-csv" class="export-btn" type="button">Exportar Excel</button> -->
     </div>
+    <!-- floating history card to the right of actions (keeps same IDs so JS still works) -->
+    <button id="btn-show-history" class="btn" style="position:fixed;top:32px;right:32px;z-index:1200;background:#fff;color:#222;border:1px solid #e0e7ef;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,0.10);min-width:260px;max-width:400px;height:70px;font-size:1.25rem;letter-spacing:1px;text-transform:uppercase;box-shadow:0 4px 16px rgba(0,0,0,0.08);border-radius:16px;transition:background 0.2s, color 0.2s;">Ver últimos 20 parciales abastecidos</button>
+    <div id="modal-history" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.22);z-index:2000;align-items:center;justify-content:center;">
+        <div id="modal-history-content" style="background:#fff;border-radius:22px;box-shadow:0 12px 48px rgba(0,0,0,0.22);padding:38px 38px 32px 38px;min-width:600px;max-width:1100px;width:80vw;margin:auto;display:flex;flex-direction:column;gap:18px;">
+            <div style="font-weight:900;margin-bottom:0;text-align:center;font-size:2rem;letter-spacing:1px;color:#4f46e5;">Últimos 20 parciales abastecidos</div>
+            <div id="recent-history-list-modal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;max-height:60vh;overflow-y:auto;padding:8px 2px 8px 2px;"></div>
+            <button id="btn-close-history" class="btn" style="background:#e0e7ef;color:#222;font-weight:700;align-self:center;padding:12px 38px;font-size:1.1rem;border-radius:12px;">Cerrar</button>
+        </div>
+    </div>
     <script>
+    // --- MODAL HISTORIAL REDISEÑADO ---
+    document.getElementById('btn-show-history').onclick = async function() {
+        document.getElementById('modal-history').style.display = 'flex';
+        await loadHistoryCardsUnified();
+    };
+    document.getElementById('btn-close-history').onclick = function() {
+        document.getElementById('modal-history').style.display = 'none';
+    };
+
     // Formato de visualización de parciales/órdenes: quitar ceros a la izquierda
     // (sin modificar el valor real guardado en Firebase/localStorage).
     window.formatParcialDisplay = window.formatParcialDisplay || function(value){
@@ -2464,6 +2430,135 @@ try{
         }catch(e){}
     };
     try{ window.refreshParcialDisplay(); }catch(e){}
+
+    async function loadHistoryCardsUnified() {
+        const list = document.getElementById('recent-history-list-modal');
+        const skeleton = '<div style="padding:24px;text-align:center;color:#475569;font-weight:700;">Cargando últimos 20...</div>';
+        list.innerHTML = skeleton;
+
+        const formatDur = (ms)=>{
+            if(!ms || ms <= 0) return '0s';
+            const s = Math.floor(ms/1000); const m = Math.floor(s/60); const sec = s%60;
+            return m>0 ? `${m}m ${sec}s` : `${sec}s`;
+        };
+
+        async function fetchFromPanel(){
+            try{
+                if(Array.isArray(window.panelHistorial) && window.panelHistorial.length){
+                    return window.panelHistorial.slice();
+                }
+                if(typeof renderPanelContent !== 'function') return [];
+                const waitForPanel = new Promise(resolve => {
+                    let done = false;
+                    const handler = ()=>{ if(done) return; done = true; window.removeEventListener('panelHistorialReady', handler); resolve(); };
+                    window.addEventListener('panelHistorialReady', handler, { once:true });
+                    setTimeout(()=>{ if(done) return; done = true; window.removeEventListener('panelHistorialReady', handler); resolve(); }, 1200);
+                });
+                try{ renderPanelContent(); }catch(_){ }
+                await waitForPanel;
+                if(Array.isArray(window.panelHistorial) && window.panelHistorial.length){
+                    return window.panelHistorial.slice();
+                }
+            }catch(e){}
+            return [];
+        }
+
+        async function fetchFromLocal(){
+            try{
+                const raw = localStorage.getItem('pk_history');
+                if(!raw) return [];
+                const arr = JSON.parse(raw) || [];
+                return Array.isArray(arr) ? arr : [];
+            }catch(e){ return []; }
+        }
+
+        async function fetchFromFirebase(){
+            if(!window.db) return [];
+            // Prefer historial
+            try{
+                const snap = await window.db.ref('historial').once('value');
+                const data = snap.val() || {};
+                const arr = Object.keys(data).map(k => ({ id:k, ...data[k] }));
+                if(arr.length) return arr;
+            }catch(e){ console.warn('historial fetch failed, fallback a abastecimientos', e); }
+
+            // Fallback: usar el mismo origen del panel (abastecimientos) y aplanar
+            try{
+                const snap = await window.db.ref('abastecimientos').once('value');
+                const data = snap.val() || {};
+                if(typeof flattenAbastecimientos === 'function'){
+                    return flattenAbastecimientos(data);
+                }
+                // Backup manual si no existe helper (no debería pasar)
+                const arr = [];
+                Object.keys(data).forEach(k=>{
+                    const val = data[k];
+                    if(val && typeof val === 'object' && (val.parcial || val.pk || val.line || val.linea)){
+                        arr.push({ id:k, ...val });
+                    } else if(val && typeof val === 'object'){
+                        Object.keys(val).forEach(subK => {
+                            const subVal = val[subK];
+                            if(subVal && typeof subVal === 'object') arr.push({ id:subK, ...subVal, line: k });
+                        });
+                    }
+                });
+                return arr;
+            }catch(e){ return []; }
+        }
+
+        let items = await fetchFromPanel();
+        if(!items.length){ items = await fetchFromLocal(); }
+        if(!items.length){ items = await fetchFromFirebase(); }
+
+        // Normalizar campos
+        const norm = items.map(it => {
+            const parcial = it.parcial || it.name || it.order || it.orden_produccion || it.orderId || it.id || '';
+            const line = it.line || it.pk || it.linea || it.lineName || '';
+            const suppliedAt = it.suppliedAt ? Number(it.suppliedAt) : (it.timestamp ? Date.parse(it.timestamp) : 0);
+            const requestedAt = it.requestedAt ? Number(it.requestedAt) : 0;
+            const fecha = it.fecha || (suppliedAt ? new Date(suppliedAt).toLocaleDateString('es-ES') : '');
+            const hora = it.hora || (suppliedAt ? new Date(suppliedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute:'2-digit', second:'2-digit' }) : '');
+            const duration = Number.isFinite(it.duration) ? Number(it.duration) : (suppliedAt && requestedAt ? suppliedAt - requestedAt : 0);
+            return { parcial, line, suppliedAt, requestedAt, fecha, hora, duration };
+        }).filter(it => it.parcial && it.line);
+
+        items = norm.sort((a,b)=> (b.suppliedAt||0) - (a.suppliedAt||0)).slice(0,20);
+
+        if(!items.length){
+            list.innerHTML = '<div style="padding:24px;font-size:1.2rem;color:#64748b;text-align:center;">📭 Sin órdenes abastecidas aún.</div>';
+            return;
+        }
+
+        const fmtDate = (ts)=> ts ? new Date(ts).toLocaleDateString('es-ES') : '—';
+        const fmtTime = (ts)=> ts ? new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+        const fmtDuration = formatDur;
+
+        list.innerHTML = items.map(item => {
+            const parcial = window.formatParcialDisplay(item.parcial || '—');
+            const line = item.line || '—';
+            const fs = fmtDate(item.requestedAt);
+            const hs = fmtTime(item.requestedAt);
+            const fa = fmtDate(item.suppliedAt);
+            const ha = fmtTime(item.suppliedAt);
+            const dur = fmtDuration(item.duration || 0);
+            return `
+            <div style="background:linear-gradient(180deg,#f9fbff,#eef2ff);border-radius:16px;box-shadow:0 10px 28px rgba(15,23,42,0.12);padding:16px 14px;border-left:8px solid #4f46e5;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:17px;font-weight:900;color:#0f172a;">OP: ${parcial}</div>
+                    <div style="color:#4f46e5;font-weight:800;font-size:12px;">Línea: ${line}</div>
+                </div>
+                <div style="background:#f1f5f9;border-radius:12px;padding:10px 12px;border:1px solid #e2e8f0;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:12px;color:#0f172a;">
+                    <div>FS: ${fs}</div>
+                    <div>HS: ${hs}</div>
+                    <div>FA: ${fa}</div>
+                    <div>HA: ${ha}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-weight:800;color:#4f46e5;">
+                    <span>⏱️</span> <span>${dur}</span>
+                </div>
+            </div>`;
+        }).join('');
+    }
     </script>
     <!-- (alert banner removed — using red report panel below) -->
     <!-- panel de reporte de líneas vacías (se ubicará junto al panel de controles) -->
@@ -5741,6 +5836,44 @@ try{
                 });
             });
             
+            // Mostrar panel de control interno en vez de abrir nueva pestaña
+            document.addEventListener('DOMContentLoaded', function(){
+                const btn = document.getElementById('btn-panel-control');
+                if(btn){
+                    btn.addEventListener('click', async (ev)=>{
+                        ev.preventDefault && ev.preventDefault();
+                        
+                        // Ask for password con modal personalizado (mismo que anular solicitud)
+                        const password = await showPasswordModal('Ingresa la clave para acceder al panel de control:');
+                        if(password === null) return; // user cancelled
+                        
+                        const storedHash = await fetchAdminPasswordHash();
+                        if(!storedHash){
+                            alert('Configura la clave de administrador en Firebase (config/admin_password_hash) antes de usar el panel.');
+                            return;
+                        }
+                        const inputHash = await hashPassword(password);
+                        if(!inputHash || inputHash !== storedHash){
+                            alert('❌ Clave incorrecta. Acceso denegado.');
+                            return;
+                        }
+                        
+                        // Password correct, proceed with panel
+                        const panel = document.getElementById('panel-control-interno');
+                        if(panel){
+                            panel.style.display = 'block';
+                            document.body.style.overflow = 'hidden';
+                            // Guardar estado para persistir después de refresh
+                            sessionStorage.setItem('panelControlOpen', 'true');
+                            // render content
+                            if(typeof renderPanelContent === 'function') renderPanelContent();
+                        } else {
+                            // fallback: open existing page if internal panel not present
+                            window.open('panel_control.html','_blank');
+                        }
+                    });
+                }
+            });
         </script>
     <!-- INDICADOR ESCLUSA LLENA - TITILANTE -->
     <div id="esclusa-indicator" title="Click para desactivar" style="
@@ -5810,6 +5943,7 @@ try{
             <button id="btn-salida" class="color-box green" type="button" aria-label="Abastecer AB">ABASTECER<br>AREA BLANCA</button>
             <button id="btn-anular-solicitud" class="color-box red" type="button" aria-label="Anular solicitud" style="background:linear-gradient(90deg,#ff6b6b,#ff5252);color:white;">ANULAR<br>SOLICITUD</button>
             <button id="btn-solicitar" class="color-box orange" type="button" aria-label="Solicitar parciales">SOLICITAR<br>PARCIALES</button>
+            <button id="btn-panel-control" class="color-box purple" type="button" aria-label="Panel de control" style="background:linear-gradient(90deg,#7c3aed,#6d28d9);color:white;">PANEL<br>DE CONTROL</button>
             <div style="position:absolute;left:50%;top:8px;transform:translate(-50%,-30%);display:flex;gap:6px;align-items:center;justify-content:center;">
                 <button id="btn-esclusa-toggle" class="color-box" type="button" aria-label="Activar indicador de esclusa" style="background:linear-gradient(90deg,#60a5fa,#2563eb);color:#0b1325;font-weight:800;padding:6px 10px;min-width:92px;line-height:1;font-size:11px;">ESCLUSA<br>LLENA</button>
                 <button id="btn-adicional-toggle" class="color-box" type="button" aria-label="Activar alerta adicional" style="background:linear-gradient(90deg,#f87171,#dc2626);color:#1f2937;font-weight:800;padding:6px 10px;min-width:92px;line-height:1;font-size:11px;">ADICIONAL</button>
@@ -6030,6 +6164,139 @@ try{
         obs.observe(list, { childList: true, subtree: false });
         // run once now in case items are already present
         adjustNavVisibility();
+    })();
+
+    // Posicionar el panel de historial de forma segura para evitar solapamientos
+    (async function(){
+        const list = document.getElementById('recent-history-list-modal');
+        const skeleton = '<div style="padding:24px;text-align:center;color:#475569;font-weight:700;">Cargando últimos 20...</div>';
+        list.innerHTML = skeleton;
+
+        const formatDur = (ms)=>{
+            if(!ms || ms <= 0) return '0s';
+            const s = Math.floor(ms/1000); const m = Math.floor(s/60); const sec = s%60;
+            return m>0 ? `${m}m ${sec}s` : `${sec}s`;
+        };
+
+        async function fetchFromLocal(){
+            try{
+                const raw = localStorage.getItem('pk_history');
+                if(!raw) return [];
+                const arr = JSON.parse(raw) || [];
+                return Array.isArray(arr) ? arr : [];
+            }catch(e){ return []; }
+        }
+
+        async function fetchFromFirebase(){
+            if(!window.db) return [];
+            // Prefer historial
+            try{
+                const snap = await window.db.ref('historial').once('value');
+                const data = snap.val() || {};
+                const arr = Object.keys(data).map(k => ({ id:k, ...data[k] }));
+                if(arr.length) return arr;
+            }catch(e){ console.warn('historial fetch failed, fallback a abastecimientos', e); }
+
+            // Fallback: usar el mismo origen del panel (abastecimientos) y aplanar
+            try{
+                const snap = await window.db.ref('abastecimientos').once('value');
+                const data = snap.val() || {};
+                if(typeof flattenAbastecimientos === 'function'){
+                    return flattenAbastecimientos(data);
+                }
+                // Backup manual si no existe helper (no debería pasar)
+                const arr = [];
+                Object.keys(data).forEach(k=>{
+                    const val = data[k];
+                    if(val && typeof val === 'object' && (val.parcial || val.pk || val.line || val.linea)){
+                        arr.push({ id:k, ...val });
+                    } else if(val && typeof val === 'object'){
+                        Object.keys(val).forEach(subK => {
+                            const subVal = val[subK];
+                            if(subVal && typeof subVal === 'object') arr.push({ id:subK, ...subVal, line: k });
+                        });
+                    }
+                });
+                return arr;
+            }catch(e){ return []; }
+        }
+
+        async function fetchFromPanel(){
+            try{
+                if(Array.isArray(window.panelHistorial) && window.panelHistorial.length){
+                    return window.panelHistorial.slice();
+                }
+
+                // Esperar a que la función del panel esté disponible
+                if(typeof renderPanelContent !== 'function'){
+                    await new Promise(resolve => {
+                        let attempts = 0;
+                        const timer = setInterval(() => {
+                            attempts++;
+                            if(typeof renderPanelContent === 'function' || attempts >= 10){
+                                clearInterval(timer);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                }
+
+                if(typeof renderPanelContent === 'function'){
+                    const waitForPanel = new Promise(resolve => {
+                        let done = false;
+                        const handler = ()=>{ if(done) return; done = true; window.removeEventListener('panelHistorialReady', handler); resolve(); };
+                        window.addEventListener('panelHistorialReady', handler, { once:true });
+                        setTimeout(()=>{ if(done) return; done = true; window.removeEventListener('panelHistorialReady', handler); resolve(); }, 1200);
+                    });
+                    try{ renderPanelContent(); }catch(_){ }
+                    await waitForPanel;
+                    if(Array.isArray(window.panelHistorial) && window.panelHistorial.length){
+                        return window.panelHistorial.slice();
+                    }
+                }
+            }catch(e){}
+            return [];
+        }
+
+        let items = await fetchFromPanel();
+        if(!items.length){ items = await fetchFromLocal(); }
+        if(!items.length){ items = await fetchFromFirebase(); }
+
+        const norm = items.map(it => {
+            const parcial = it.parcial || it.name || it.order || it.orden_produccion || it.orderId || it.id || '';
+            const line = it.line || it.pk || it.linea || it.lineName || '';
+            const suppliedAt = it.suppliedAt ? Number(it.suppliedAt) : (it.timestamp ? Date.parse(it.timestamp) : 0);
+            const requestedAt = it.requestedAt ? Number(it.requestedAt) : 0;
+            const fecha = it.fecha || (suppliedAt ? new Date(suppliedAt).toLocaleDateString('es-ES') : '');
+            const hora = it.hora || (suppliedAt ? new Date(suppliedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute:'2-digit', second:'2-digit' }) : '');
+            const duration = Number.isFinite(it.duration) ? Number(it.duration) : (suppliedAt && requestedAt ? suppliedAt - requestedAt : 0);
+            return { parcial, line, suppliedAt, requestedAt, fecha, hora, duration };
+        }).filter(it => it.parcial && it.line);
+
+        const sorted = norm.sort((a,b)=> (b.suppliedAt||0) - (a.suppliedAt||0)).slice(0,20);
+        if(!sorted.length){
+            list.innerHTML = '<div style="padding:24px;text-align:center;color:#475569;font-weight:700;">Sin registros disponibles</div>';
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        sorted.forEach(it => {
+            const li = document.createElement('li');
+            li.className = 'history-card';
+            li.innerHTML = `
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+                    <div style="font-weight:800;color:#0f172a;">OP ${it.parcial}</div>
+                    <div style="font-size:12px;color:#475569;">${it.fecha} ${it.hora}</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px;">
+                    <div style="font-weight:700;color:#0f172a;">${it.line}</div>
+                    <div style="font-size:12px;color:#0f172a;">Duración: ${formatDur(it.duration)}</div>
+                </div>`;
+            frag.appendChild(li);
+        });
+
+        list.innerHTML = '';
+        list.appendChild(frag);
     })();
 
     // Colocar y permitir arrastrar el panel flotante de historial
