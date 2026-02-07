@@ -596,6 +596,8 @@
         // Variables para la solicitud encontrada
         let solicitudActual = null;
         let solicitudPath = null;
+        let solicitudIsMissing = false;
+        let solicitudMissingId = null;
         let tiempoInterval = null;
         let solicitudLineListener = null;
         let solicitudesCountListener = null;
@@ -684,7 +686,16 @@
                 const data = snap.val();
                 const lista = [];
                 if(data && typeof data === 'object') {
-                    Object.values(data).forEach(val => {
+                    Object.entries(data).forEach(([key, val]) => {
+                        if(key === 'missing'){
+                            Object.values(val || {}).forEach(mv => {
+                                if(mv && typeof mv === 'object'){
+                                    const maybe = mv.op || mv.parcial || mv.name || mv.order || mv.orden || mv.pk;
+                                    if(maybe) lista.push(maybe);
+                                }
+                            });
+                            return;
+                        }
                         if(val && typeof val === 'object') {
                             const maybe = val.parcial || val.name || val.order || val.orden || val.op || val.pk;
                             if(maybe) lista.push(maybe);
@@ -759,11 +770,30 @@
                 const data = snap.val();
                 solicitudActual = null;
                 solicitudPath = null;
+                solicitudIsMissing = false;
+                solicitudMissingId = null;
                 
                 if(data) {
                     // Buscar el parcial
                     for(const [key, value] of Object.entries(data)) {
                         if(value && typeof value === 'object') {
+                            if(key === 'missing'){
+                                for(const [mid, mval] of Object.entries(value || {})){
+                                    if(mval && typeof mval === 'object'){
+                                        const mParcial = String(mval.op || mval.parcial || mval.name || '').trim().toUpperCase();
+                                        if(mParcial && mParcial === String(parcial || '').trim().toUpperCase()){
+                                            solicitudActual = mval;
+                                            solicitudPath = `solicitudes/${linea}/missing/${mid}`;
+                                            solicitudIsMissing = true;
+                                            solicitudMissingId = mid;
+                                            console.log(`✅ Solicitud SIN EXISTENCIA encontrada: ${solicitudPath}`);
+                                            mostrarSolicitud(linea, parcial, mval.requestedAt || Date.now());
+                                            return;
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
                             if(value.parcial === parcial || value.name === parcial || key === parcial) {
                                 solicitudActual = value;
                                 solicitudPath = `solicitudes/${linea}/${key}`;
@@ -904,11 +934,28 @@
                 let solicitudEncontrada = null;
                 let solicitudPathFinal = null;
                 
+                let lineaSolicitudes = null;
                 if(solicitudesData[linea]) {
-                    const lineaSolicitudes = solicitudesData[linea];
+                    lineaSolicitudes = solicitudesData[linea];
                     
                     for(const [key, value] of Object.entries(lineaSolicitudes)) {
                         if(value && typeof value === 'object') {
+                            if(key === 'missing'){
+                                for(const [mid, mval] of Object.entries(value || {})){
+                                    if(mval && typeof mval === 'object'){
+                                        const mParcial = String(mval.op || mval.parcial || mval.name || '').trim().toUpperCase();
+                                        if(mParcial && mParcial === parcial) {
+                                            solicitudEncontrada = mval;
+                                            solicitudPathFinal = `solicitudes/${linea}/missing/${mid}`;
+                                            solicitudIsMissing = true;
+                                            solicitudMissingId = mid;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if(solicitudEncontrada) break;
+                                continue;
+                            }
                             if(value.parcial === parcial || value.name === parcial || key === parcial) {
                                 solicitudEncontrada = value;
                                 solicitudPathFinal = `solicitudes/${linea}/${key}`;
@@ -929,23 +976,51 @@
                     const updates = {};
                     
                     // 1. Eliminar solicitud (detiene tiempo en todos los dispositivos)
-                    updates[`solicitudes/${linea}/${solicitudPathFinal.split('/').pop()}`] = null;
-                    console.log(`🗑️ Preparando eliminación de solicitud: ${solicitudPathFinal}`);
+                    if(solicitudIsMissing){
+                        updates[`solicitudes/${linea}/missing/${solicitudMissingId}`] = null;
+                        console.log(`🗑️ Preparando eliminación de solicitud SIN EXISTENCIA: ${solicitudPathFinal}`);
+                    } else {
+                        updates[`solicitudes/${linea}/${solicitudPathFinal.split('/').pop()}`] = null;
+                        console.log(`🗑️ Preparando eliminación de solicitud: ${solicitudPathFinal}`);
+                    }
                     
                     // 2. Actualizar kanban_estado y monitor (quitar el parcial)
-                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
-                    const kanbanArray = kanbanSnap.val() || [];
-                    const target = String(parcial || '').trim().toUpperCase();
-                    const index = kanbanArray.findIndex(p => String(p || '').trim().toUpperCase() === target);
-                    if(index !== -1) {
-                        kanbanArray.splice(index, 1);
-                        updates[`kanban_estado/${linea}`] = kanbanArray;
-                        updates[`monitor/${linea}`] = kanbanArray;
-                        console.log(`📦 Preparando remoción de kanban/monitor ${linea}`);
+                    if(!solicitudIsMissing){
+                        const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
+                        const kanbanArray = kanbanSnap.val() || [];
+                        const target = String(parcial || '').trim().toUpperCase();
+                        const index = kanbanArray.findIndex(p => String(p || '').trim().toUpperCase() === target);
+                        if(index !== -1) {
+                            kanbanArray.splice(index, 1);
+                            updates[`kanban_estado/${linea}`] = kanbanArray;
+                            updates[`monitor/${linea}`] = kanbanArray;
+                            console.log(`📦 Preparando remoción de kanban/monitor ${linea}`);
+                        }
                     }
 
-                    // 3. Limpiar solicitud_times de la línea
-                    updates[`solicitud_times/${linea}`] = null;
+                    // 3. Limpiar solicitud_times de la línea (solo si no quedan solicitudes)
+                    try{
+                        let remaining = 0;
+                        if(lineaSolicitudes && typeof lineaSolicitudes === 'object'){
+                            Object.entries(lineaSolicitudes).forEach(([k,v])=>{
+                                if(k === 'missing'){
+                                    Object.entries(v || {}).forEach(([mid, mv])=>{
+                                        if(!mv || typeof mv !== 'object') return;
+                                        if(solicitudIsMissing && String(mid) === String(solicitudMissingId)) return;
+                                        remaining++;
+                                    });
+                                } else if(v && typeof v === 'object'){
+                                    if(!solicitudIsMissing && String(k) === String(solicitudPathFinal.split('/').pop())) return;
+                                    remaining++;
+                                }
+                            });
+                        }
+                        if(remaining === 0){
+                            updates[`solicitud_times/${linea}`] = null;
+                        }
+                    }catch(e){
+                        updates[`solicitud_times/${linea}`] = null;
+                    }
                     
                     // 4. Guardar en abastecimientos/{line}
                     const abastecimientoKey = db.ref(`abastecimientos/${linea}`).push().key;
@@ -957,7 +1032,8 @@
                         requestedAt: requestedAt,
                         suppliedAt: now,
                         duration: duration,
-                        timestamp: now
+                        timestamp: now,
+                        missing: solicitudIsMissing || false
                     };
                     updates[`abastecimientos/${linea}/${abastecimientoKey}`] = abastecimientoData;
                     
