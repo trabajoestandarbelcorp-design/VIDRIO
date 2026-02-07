@@ -6578,6 +6578,52 @@ try{
             }
         }
 
+        let _applyingInactiveFromFirebase = false;
+        const INACTIVE_LINES_NODE = 'inactive_lines';
+
+        function syncInactiveToFirebase(lineName, isActive, causal){
+            try{
+                if(!window.db) return;
+                const key = (lineName || '').trim();
+                if(!key) return;
+                if(isActive){
+                    window.db.ref(`${INACTIVE_LINES_NODE}/${key}`).remove().catch(()=>{});
+                } else {
+                    window.db.ref(`${INACTIVE_LINES_NODE}/${key}`).set({
+                        line: key,
+                        active: false,
+                        causal: String(causal || '').trim(),
+                        updatedAt: Date.now()
+                    }).catch(()=>{});
+                }
+            }catch(e){ console.warn('syncInactiveToFirebase failed', e); }
+        }
+
+        function subscribeInactiveFromFirebase(){
+            try{
+                if(!window.db) return;
+                window.db.ref(INACTIVE_LINES_NODE).on('value', snap => {
+                    const data = snap.val() || {};
+                    _applyingInactiveFromFirebase = true;
+                    try{
+                        const cols = Array.from(document.querySelectorAll('.container .column'));
+                        cols.forEach(col => {
+                            const header = col.querySelector('.column-header');
+                            const lineName = (header && (header.querySelector('.column-title')||header).textContent || '').trim();
+                            if(!lineName) return;
+                            const entry = data[lineName];
+                            if(entry && typeof entry === 'object'){
+                                setLineState(col, lineName, false, entry.causal || '');
+                            } else {
+                                setLineState(col, lineName, true);
+                            }
+                        });
+                    }catch(e){ console.warn('apply inactive lines from firebase failed', e); }
+                    _applyingInactiveFromFirebase = false;
+                });
+            }catch(e){ console.warn('subscribeInactiveFromFirebase failed', e); }
+        }
+
         function applyLineSwitches(){
             const cols = document.querySelectorAll('.container .column');
             cols.forEach(col => {
@@ -6616,28 +6662,31 @@ try{
                     if(savedCausal) col.dataset.lineCausal = savedCausal;
                 }
 
-                function setLineState(on, causal){
+                function setLineState(colRef, lineNameRef, on, causal){
                     input.checked = on;
-                    col.classList.toggle('line-disabled', !on);
+                    colRef.classList.toggle('line-disabled', !on);
                     localStorage.setItem(storageKey, on ? 'on' : 'off');
                     if(on){
                         localStorage.removeItem(causalKey);
-                        col.dataset.lineCausal = '';
-                        const old = col.querySelector('.line-causal');
+                        colRef.dataset.lineCausal = '';
+                        const old = colRef.querySelector('.line-causal');
                         if(old) old.remove();
                     } else if(causal){
                         localStorage.setItem(causalKey, causal);
-                        col.dataset.lineCausal = causal;
-                        let causalEl = col.querySelector('.line-causal');
+                        colRef.dataset.lineCausal = causal;
+                        let causalEl = colRef.querySelector('.line-causal');
                         if(!causalEl){
                             causalEl = document.createElement('div');
                             causalEl.className = 'line-causal';
-                            col.insertBefore(causalEl, col.querySelector('.block'));
+                            colRef.insertBefore(causalEl, colRef.querySelector('.block'));
                         }
                         const words = String(causal).trim().split(/\s+/g).slice(0,4);
                         const line1 = words.slice(0,2).join(' ');
                         const line2 = words.slice(2,4).join(' ');
                         causalEl.textContent = line2 ? `${line1}\n${line2}` : line1;
+                    }
+                    if(!_applyingInactiveFromFirebase){
+                        syncInactiveToFirebase(lineNameRef, on, causal);
                     }
                 }
 
@@ -6645,9 +6694,9 @@ try{
                     if(input.checked){
                         const causal = await requestTwoWordCausal(lineName);
                         if(!causal) return;
-                        setLineState(false, causal);
+                        setLineState(col, lineName, false, causal);
                     } else {
-                        setLineState(true);
+                        setLineState(col, lineName, true);
                     }
                 }
 
@@ -6665,13 +6714,16 @@ try{
                 if(!isOn){
                     const savedCausal = localStorage.getItem(causalKey);
                     if(savedCausal){
-                        setLineState(false, savedCausal);
+                        setLineState(col, lineName, false, savedCausal);
                     }
                 }
             });
         }
 
         applyLineSwitches();
+
+        // Realtime: sincronizar líneas inactivas con Firebase
+        try{ subscribeInactiveFromFirebase(); }catch(e){}
 
         const container = document.querySelector('.container');
         if(container){
