@@ -364,6 +364,32 @@
         grid-row: 2;
         justify-self: end;
     }
+    .top-right-actions{
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    #btn-anular{
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    #btn-anular img{
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+        display: block;
+    }
     /* Botón panel: icono engranaje */
     #btn-panel-control {
         background: transparent !important;
@@ -602,6 +628,9 @@
             #btn-entrada { grid-column: 1; grid-row: 1; }
             #btn-salida { grid-column: 2; grid-row: 1; }
             #btn-solicitar { grid-column: 1; grid-row: 2; }
+            .top-right-actions { grid-column: 2; grid-row: 2; justify-self: end; }
+            #btn-anular{ width: 30px; height: 30px; }
+            #btn-anular img{ width: 30px; height: 30px; }
             #btn-panel-control { 
                 position: absolute;
                 top: -24px;
@@ -1198,6 +1227,23 @@
     .top-controls .color-box:active{ transform: translateY(1px) scale(0.996); }
     .color-box.blue{ box-shadow: 0 8px 30px rgba(59,130,246,0.14), 0 2px 6px rgba(0,0,0,0.25); }
     .color-box.green{ box-shadow: 0 8px 30px rgba(52,211,153,0.12), 0 2px 6px rgba(0,0,0,0.25); }
+    .color-box.desmontadas{
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fde68a 100%);
+        color: #7c2d12;
+        text-shadow: none;
+        box-shadow: 0 14px 34px rgba(124,45,18,0.18), 0 4px 12px rgba(0,0,0,0.12);
+        border: 2px dashed rgba(124,45,18,0.45);
+        letter-spacing: 1px;
+        border-radius: 999px;
+        height: 44px;
+        min-width: 180px;
+        max-width: 220px;
+        padding: 0 16px;
+        font-size: 12px;
+    }
+    .color-box.desmontadas::before{
+        background: linear-gradient(180deg, rgba(124,45,18,0.15), rgba(124,45,18,0.04));
+    }
     .color-box:focus {
         outline: none;
         transform: translateY(-3px) scale(1.03);
@@ -1627,6 +1673,165 @@
     }
     .password-modal-buttons .btn-accept:hover {
         background: #5a6603;
+    }
+
+    /* Modal Órdenes desmontadas */
+    #modal-desmontadas{
+        display:none;
+        position:fixed;
+        top:0; left:0; right:0; bottom:0;
+        background: rgba(15,23,42,0.35);
+        z-index: 2200;
+        align-items:center;
+        justify-content:center;
+        padding: 20px;
+    }
+    #modal-desmontadas .modal-card{
+        background: linear-gradient(180deg,#fff7ed,#fffaf3);
+        border-radius: 18px;
+        box-shadow: 0 18px 60px rgba(15,23,42,0.25);
+        padding: 30px 30px 22px 30px;
+        max-width: 1200px;
+        width: min(98vw, 1200px);
+        border: 2px dashed rgba(124,45,18,0.35);
+    }
+    #modal-desmontadas .modal-title{
+        font-size: 20px;
+        font-weight: 900;
+        color: #7c2d12;
+        letter-spacing: 0.8px;
+        margin-bottom: 10px;
+        text-align:center;
+    }
+    #modal-desmontadas .modal-body{
+        color:#7c2d12;
+        font-size: 13px;
+        line-height: 1.5;
+        background: rgba(255,255,255,0.7);
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 360px;
+    }
+    #modal-desmontadas .modal-body .modal-body-header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-bottom: 10px;
+        gap: 12px;
+    }
+    #modal-desmontadas .modal-body .btn-add-desmontada{
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg,#f59e0b,#f97316);
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(249,115,22,0.35);
+    }
+    #modal-desmontadas .modal-body .btn-add-desmontada:hover{
+        transform: translateY(-1px);
+    }
+    #modal-desmontadas .desmontadas-list{
+        display:flex;
+        flex-direction:column;
+        gap: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    #modal-desmontadas .desmontada-item{
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    #modal-desmontadas .desmontada-item.selected{
+        border-color: rgba(251,146,60,0.9) !important;
+        box-shadow: 0 10px 20px rgba(251,146,60,0.2);
+        transform: translateY(-1px);
+        background: #fff3e0 !important;
+    }
+    #modal-desmontadas .desmontadas-empty{
+        opacity: 0.8;
+        font-style: italic;
+    }
+    #modal-desmontadas .desmontadas-form{
+        display:none;
+        margin-top: 12px;
+        background: rgba(255,255,255,0.9);
+        border: 1px solid rgba(124,45,18,0.2);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 8px 18px rgba(124,45,18,0.12);
+    }
+    #modal-desmontadas .desmontadas-form.visible{ display:block; }
+    #modal-desmontadas .desmontadas-form .form-grid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+    }
+    #modal-desmontadas .desmontadas-form label{
+        font-size: 12px;
+        font-weight: 800;
+        color: #7c2d12;
+        display:block;
+        margin-bottom: 4px;
+    }
+    #modal-desmontadas .desmontadas-form input,
+    #modal-desmontadas .desmontadas-form textarea{
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(124,45,18,0.25);
+        background: #fffaf0;
+        font-size: 12px;
+        font-family: inherit;
+    }
+    #modal-desmontadas .desmontadas-form textarea{ min-height: 70px; resize: vertical; }
+    #modal-desmontadas .desmontadas-form .form-actions{
+        display:flex;
+        justify-content:flex-end;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    #modal-desmontadas .desmontadas-form .btn-secondary{
+        border: none;
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: #fee2e2;
+        color: #7f1d1d;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    #modal-desmontadas .desmontadas-form .btn-primary{
+        border: none;
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: #f59e0b;
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    #modal-desmontadas .modal-actions{
+        display:flex;
+        justify-content:center;
+        margin-top: 14px;
+        gap: 10px;
+    }
+    #modal-desmontadas .modal-actions .btn-close{
+        border: none;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 800;
+        cursor: pointer;
+        background: #fed7aa;
+        color: #7c2d12;
+        box-shadow: 0 8px 18px rgba(124,45,18,0.15);
+    }
+    #modal-desmontadas .modal-actions .btn-close:hover{
+        transform: translateY(-1px);
     }
     
     /* título con efecto glassmorphism - MEJORADO */
@@ -2644,6 +2849,45 @@ try{
             <button id="btn-close-history" class="btn" style="background:#e0e7ef;color:#222;font-weight:700;align-self:center;padding:12px 38px;font-size:1.1rem;border-radius:12px;">Cerrar</button>
         </div>
     </div>
+    <div id="modal-desmontadas" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-title">ÓRDENES DESMONTADAS</div>
+            <div class="modal-body">
+                <div class="modal-body-header">
+                    <div>Listado de órdenes desmontadas</div>
+                    <button class="btn-add-desmontada" id="btn-add-desmontada" type="button" aria-label="Agregar orden desmontada">+</button>
+                </div>
+                <div class="desmontadas-list" id="desmontadas-list">
+                    <div class="desmontadas-empty">Aquí se mostrará el listado de órdenes desmontadas.</div>
+                </div>
+                <div class="desmontadas-form" id="desmontadas-form">
+                    <div class="form-grid">
+                        <div>
+                            <label for="desm-orden">Orden</label>
+                            <input type="text" id="desm-orden" placeholder="Ej: 12735408">
+                        </div>
+                        <div>
+                            <label for="desm-fecha">Fecha inicio</label>
+                            <input type="date" id="desm-fecha">
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label for="desm-parciales">Parciales descartonados (cantidad)</label>
+                            <input type="number" id="desm-parciales" placeholder="Ej: 12" min="0" step="1">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-secondary" id="desm-cancelar" type="button">Cancelar</button>
+                        <button class="btn-primary" id="desm-guardar" type="button">Guardar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-close" id="btn-close-desmontadas" type="button">Cerrar</button>
+                <button class="btn-close" id="btn-cierre-tecnico" type="button">Cierre tecnico</button>
+                <button class="btn-close" id="btn-montar-orden" type="button">Montar orden</button>
+            </div>
+        </div>
+    </div>
     <script>
     // --- MODAL HISTORIAL REDISEÑADO ---
     document.getElementById('btn-show-history').onclick = async function() {
@@ -2653,6 +2897,267 @@ try{
     document.getElementById('btn-close-history').onclick = function() {
         document.getElementById('modal-history').style.display = 'none';
     };
+
+    // --- MODAL ÓRDENES DESMONTADAS ---
+    function initDesmontadasModal(){
+        const btnDesmontadas = document.getElementById('btn-desmontadas');
+        const modalDesmontadas = document.getElementById('modal-desmontadas');
+        const btnCloseDesmontadas = document.getElementById('btn-close-desmontadas');
+        const btnAddDesmontada = document.getElementById('btn-add-desmontada');
+        const formDesmontadas = document.getElementById('desmontadas-form');
+        const btnCancelarDesm = document.getElementById('desm-cancelar');
+        const btnGuardarDesm = document.getElementById('desm-guardar');
+        const inputOrden = document.getElementById('desm-orden');
+        const inputFecha = document.getElementById('desm-fecha');
+        const inputParciales = document.getElementById('desm-parciales');
+        const listDesmontadas = document.getElementById('desmontadas-list');
+        const btnCierreTecnico = document.getElementById('btn-cierre-tecnico');
+        const btnMontarOrden = document.getElementById('btn-montar-orden');
+        let selectedDesmontadaId = null;
+        let selectedDesmontadaOrden = null;
+        let selectedDesmontadaCantidad = null;
+
+        function addDesmontadaItem(data){
+            if(!listDesmontadas) return;
+            const empty = listDesmontadas.querySelector('.desmontadas-empty');
+            if(empty) empty.remove();
+            const item = document.createElement('div');
+            item.style.background = '#fffaf0';
+            item.style.border = '1px solid rgba(124,45,18,0.25)';
+            item.style.borderRadius = '10px';
+            item.style.padding = '10px 12px';
+            item.style.display = 'grid';
+            item.style.gridTemplateColumns = '1fr auto';
+            item.style.gap = '6px 12px';
+            item.className = 'desmontada-item';
+            if(data.id) item.dataset.id = String(data.id);
+            if(data.orden) item.dataset.orden = String(data.orden);
+            if(data.cantidad != null) item.dataset.cantidad = String(data.cantidad);
+            item.innerHTML = `
+                <div style="font-weight:800;">Orden: ${String(data.orden)}</div>
+                <div style="font-weight:700;">Fecha: ${String(data.fecha)}</div>
+                <div style="grid-column:1 / -1;">Parciales descartonados: ${String(data.cantidad)}</div>
+            `;
+            item.addEventListener('click', ()=>{
+                listDesmontadas.querySelectorAll('.desmontada-item.selected').forEach(el=>el.classList.remove('selected'));
+                item.classList.add('selected');
+                selectedDesmontadaId = item.dataset.id || null;
+                selectedDesmontadaOrden = item.dataset.orden || null;
+                selectedDesmontadaCantidad = item.dataset.cantidad || null;
+            });
+            listDesmontadas.appendChild(item);
+        }
+
+        function renderDesmontadasList(items){
+            if(!listDesmontadas) return;
+            listDesmontadas.innerHTML = '';
+            const arr = Array.isArray(items) ? items : [];
+            if(arr.length === 0){
+                const empty = document.createElement('div');
+                empty.className = 'desmontadas-empty';
+                empty.textContent = 'Aquí se mostrará el listado de órdenes desmontadas.';
+                listDesmontadas.appendChild(empty);
+                selectedDesmontadaId = null;
+                selectedDesmontadaOrden = null;
+                selectedDesmontadaCantidad = null;
+                return;
+            }
+            arr.forEach(it => addDesmontadaItem(it));
+        }
+
+        function askMontajeLinea(){
+            return new Promise((resolve)=>{
+                try{
+                    const overlay = document.createElement('div');
+                    overlay.className = 'password-modal-overlay';
+                    const modal = document.createElement('div');
+                    modal.className = 'password-modal';
+                    let lineNames = [];
+                    try{
+                        lineNames = Array.from(new Set(
+                            Array.from(document.querySelectorAll('.container > .column .column-header'))
+                                .map(h => (h.textContent||'').trim())
+                                .filter(Boolean)
+                        ));
+                    }catch(e){}
+                    modal.innerHTML = `
+                        <h3>Selecciona la línea</h3>
+                        <div>
+                            <select id="montar-linea" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.15);background:#fff;">
+                                <option value="" disabled selected>Selecciona una línea</option>
+                                ${lineNames.map(n => `<option value="${String(n).replace(/\"/g,'&quot;')}">${String(n).replace(/\"/g,'&quot;')}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="password-modal-buttons" style="margin-top:12px;">
+                            <button class="btn-cancel">Cancelar</button>
+                            <button class="btn-accept">Aceptar</button>
+                        </div>
+                    `;
+                    overlay.appendChild(modal);
+                    document.body.appendChild(overlay);
+                    const sel = modal.querySelector('#montar-linea');
+                    const btnCancel = modal.querySelector('.btn-cancel');
+                    const btnAccept = modal.querySelector('.btn-accept');
+                    function close(val){
+                        try{ overlay.remove(); }catch(e){}
+                        resolve(val);
+                    }
+                    btnCancel.addEventListener('click', ()=>close(null));
+                    btnAccept.addEventListener('click', ()=>{
+                        const val = (sel.value||'').trim();
+                        if(!val){ try{ alert('Selecciona una línea.'); }catch(e){}; return; }
+                        close(val);
+                    });
+                    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(null); });
+                }catch(e){
+                    resolve(null);
+                }
+            });
+        }
+
+        function subscribeDesmontadasRealtime(){
+            try{
+                if(!window.db) return;
+                window.db.ref('Ordnes_desmontadas').on('value', snap => {
+                    const data = snap.val() || {};
+                    const items = Object.keys(data).map(k => ({ id:k, ...data[k] }));
+                    items.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
+                    renderDesmontadasList(items);
+                });
+            }catch(e){ console.warn('subscribe Ordnes_desmontadas failed', e); }
+        }
+        if(btnDesmontadas && modalDesmontadas){
+            btnDesmontadas.addEventListener('click', ()=>{
+                modalDesmontadas.style.display = 'flex';
+                modalDesmontadas.setAttribute('aria-hidden','false');
+            });
+        }
+        if(btnCloseDesmontadas && modalDesmontadas){
+            btnCloseDesmontadas.addEventListener('click', ()=>{
+                modalDesmontadas.style.display = 'none';
+                modalDesmontadas.setAttribute('aria-hidden','true');
+            });
+        }
+        if(btnAddDesmontada && formDesmontadas){
+            btnAddDesmontada.addEventListener('click', ()=>{
+                formDesmontadas.classList.add('visible');
+                if(inputFecha && !inputFecha.value){
+                    try{ inputFecha.valueAsDate = new Date(); }catch(e){
+                        const now = new Date();
+                        const yyyy = now.getFullYear();
+                        const mm = String(now.getMonth()+1).padStart(2,'0');
+                        const dd = String(now.getDate()).padStart(2,'0');
+                        inputFecha.value = `${yyyy}-${mm}-${dd}`;
+                    }
+                }
+                try{ inputOrden && inputOrden.focus(); }catch(e){}
+            });
+        }
+        if(btnCancelarDesm && formDesmontadas){
+            btnCancelarDesm.addEventListener('click', ()=>{
+                formDesmontadas.classList.remove('visible');
+                if(inputOrden) inputOrden.value = '';
+                if(inputFecha) inputFecha.value = '';
+                if(inputParciales) inputParciales.value = '';
+            });
+        }
+        if(btnGuardarDesm && formDesmontadas){
+            btnGuardarDesm.addEventListener('click', ()=>{
+                const ordenVal = (inputOrden && inputOrden.value || '').trim();
+                const fechaVal = (inputFecha && inputFecha.value || '').trim();
+                const cantVal = (inputParciales && inputParciales.value || '').trim();
+                if(!ordenVal || !fechaVal || cantVal === ''){
+                    try{ alert('Completa Orden, Fecha inicio y Parciales descartonados.'); }catch(e){}
+                    return;
+                }
+                try{
+                    if(window.db){
+                        const key = window.db.ref('Ordnes_desmontadas').push().key;
+                        const payload = {
+                            orden: ordenVal,
+                            fecha: fechaVal,
+                            cantidad: cantVal,
+                            createdAt: Date.now()
+                        };
+                        window.db.ref(`Ordnes_desmontadas/${key}`).set(payload);
+                    } else {
+                        addDesmontadaItem({ orden: ordenVal, fecha: fechaVal, cantidad: cantVal });
+                    }
+                }catch(e){
+                    addDesmontadaItem({ orden: ordenVal, fecha: fechaVal, cantidad: cantVal });
+                }
+                if(inputOrden) inputOrden.value = '';
+                if(inputParciales) inputParciales.value = '';
+                formDesmontadas.classList.remove('visible');
+            });
+        }
+
+        if(btnCierreTecnico){
+            btnCierreTecnico.addEventListener('click', async ()=>{
+                if(!selectedDesmontadaId){
+                    try{ alert('Selecciona una orden primero.'); }catch(e){}
+                    return;
+                }
+                try{
+                    if(window.db){
+                        await window.db.ref(`Ordnes_desmontadas/${selectedDesmontadaId}`).remove();
+                    }
+                }catch(e){
+                    console.warn('Cierre tecnico failed', e);
+                }
+            });
+        }
+
+        if(btnMontarOrden){
+            btnMontarOrden.addEventListener('click', async ()=>{
+                if(!selectedDesmontadaId || !selectedDesmontadaOrden){
+                    try{ alert('Selecciona una orden primero.'); }catch(e){}
+                    return;
+                }
+                const linea = await askMontajeLinea();
+                if(!linea) return;
+                try{
+                    if(window.db){
+                        const snap = await window.db.ref(`kanban_estado/${linea}`).once('value');
+                        const arr = snap.val() || [];
+                        const target = String(selectedDesmontadaOrden || '').trim();
+                        let qty = parseInt(selectedDesmontadaCantidad || '1', 10);
+                        if(!Number.isFinite(qty) || qty < 1) qty = 1;
+                        for(let i=0; i<qty; i++){
+                            arr.push(target);
+                        }
+                        const updates = {};
+                        updates[`kanban_estado/${linea}`] = arr;
+                        updates[`monitor/${linea}`] = arr;
+                        updates[`Ordnes_desmontadas/${selectedDesmontadaId}`] = null;
+                        await window.db.ref().update(updates);
+                    }
+                }catch(e){
+                    console.warn('Montar orden failed', e);
+                }
+            });
+        }
+        if(modalDesmontadas){
+            modalDesmontadas.addEventListener('click', (e)=>{
+                if(e.target === modalDesmontadas){
+                    modalDesmontadas.style.display = 'none';
+                    modalDesmontadas.setAttribute('aria-hidden','true');
+                }
+            });
+        }
+
+        // Suscripción realtime a Firebase
+        if(window.firebaseInitPromise){
+            window.firebaseInitPromise.then(()=>{ subscribeDesmontadasRealtime(); }).catch(()=>{});
+        } else {
+            subscribeDesmontadasRealtime();
+        }
+    }
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', initDesmontadasModal, { once:true });
+    } else {
+        initDesmontadasModal();
+    }
 
     // Formato de visualización de parciales/órdenes: quitar ceros a la izquierda
     // (sin modificar el valor real guardado en Firebase/localStorage).
@@ -3388,6 +3893,7 @@ try{
         // Drag and drop (pointer/touch) for blocks - drop on ABASTECER AB (btn-salida)
         let _dragState = null;
         const btnSalida = document.getElementById('btn-salida');
+        const btnDesmontadas = document.getElementById('btn-desmontadas');
 
         function startDrag(block, ev){
             if(_dragState) return; // prevent nested drags
@@ -3465,6 +3971,7 @@ try{
             document.addEventListener('touchcancel', onTouchEnd);
             // small visual cue on target
             if(btnSalida) btnSalida.classList.add('drop-ready');
+            if(btnDesmontadas) btnDesmontadas.classList.add('drop-ready');
         }
 
         function onTouchMove(ev){
@@ -3487,27 +3994,123 @@ try{
             const x = ev.clientX; const y = ev.clientY;
             if(_dragState.ghost){ _dragState.ghost.style.left = x + 'px'; _dragState.ghost.style.top = y + 'px'; }
             // highlight drop target if hovering
+            const el = document.elementFromPoint(x, y);
             if(btnSalida){
-                const el = document.elementFromPoint(x, y);
                 if(el && (el === btnSalida || btnSalida.contains(el))){ btnSalida.classList.add('btn-drop-target'); }
                 else btnSalida.classList.remove('btn-drop-target');
             }
+            if(btnDesmontadas){
+                if(el && (el === btnDesmontadas || btnDesmontadas.contains(el))){ btnDesmontadas.classList.add('btn-drop-target'); }
+                else btnDesmontadas.classList.remove('btn-drop-target');
+            }
         }
 
-        function triggerDropSuccess(count){
-            if(!btnSalida) return;
+        function triggerDropSuccess(btn, count){
+            if(!btn) return;
             try{
-                btnSalida.classList.remove('drop-success');
+                btn.classList.remove('drop-success');
                 // reiniciar animación
-                void btnSalida.offsetWidth;
-                btnSalida.classList.add('drop-success');
+                void btn.offsetWidth;
+                btn.classList.add('drop-success');
                 const badge = document.createElement('span');
                 badge.className = 'drop-burst';
                 badge.textContent = count && count > 1 ? `+${count}` : 'OK';
-                btnSalida.appendChild(badge);
+                btn.appendChild(badge);
                 setTimeout(()=>{ try{ badge.remove(); }catch(e){} }, 800);
-                setTimeout(()=>{ try{ btnSalida.classList.remove('drop-success'); }catch(e){} }, 700);
+                setTimeout(()=>{ try{ btn.classList.remove('drop-success'); }catch(e){} }, 700);
             }catch(e){}
+        }
+
+        function getTodayDateInput(){
+            try{
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth()+1).padStart(2,'0');
+                const dd = String(now.getDate()).padStart(2,'0');
+                return `${yyyy}-${mm}-${dd}`;
+            }catch(e){ return ''; }
+        }
+
+        function updateDesmontadasListLocal(orderCounts){
+            try{
+                const list = document.getElementById('desmontadas-list');
+                if(!list) return;
+                const empty = list.querySelector('.desmontadas-empty');
+                if(empty) empty.remove();
+                const items = Array.from(list.querySelectorAll('.desmontada-item'));
+                Object.keys(orderCounts || {}).forEach(ord => {
+                    const count = orderCounts[ord] || 0;
+                    if(!count) return;
+                    let item = items.find(it => (it.dataset.orden||'') === String(ord));
+                    if(item){
+                        const prev = parseInt(item.dataset.cantidad || '0', 10) || 0;
+                        const next = prev + count;
+                        item.dataset.cantidad = String(next);
+                        const cells = item.querySelectorAll('div');
+                        const last = cells && cells[cells.length-1];
+                        if(last) last.textContent = `Parciales descartonados: ${next}`;
+                    } else {
+                        const it = document.createElement('div');
+                        it.style.background = '#fffaf0';
+                        it.style.border = '1px solid rgba(124,45,18,0.25)';
+                        it.style.borderRadius = '10px';
+                        it.style.padding = '10px 12px';
+                        it.style.display = 'grid';
+                        it.style.gridTemplateColumns = '1fr auto';
+                        it.style.gap = '6px 12px';
+                        it.className = 'desmontada-item';
+                        it.dataset.orden = String(ord);
+                        it.dataset.cantidad = String(count);
+                        it.innerHTML = `
+                            <div style="font-weight:800;">Orden: ${String(ord)}</div>
+                            <div style="font-weight:700;">Fecha: ${getTodayDateInput()}</div>
+                            <div style="grid-column:1 / -1;">Parciales descartonados: ${count}</div>
+                        `;
+                        list.appendChild(it);
+                    }
+                });
+            }catch(e){}
+        }
+
+        async function addOrdersToDesmontadas(orderCounts){
+            const counts = orderCounts || {};
+            const orders = Object.keys(counts);
+            if(orders.length === 0) return;
+            if(window.db){
+                try{
+                    const snap = await window.db.ref('Ordnes_desmontadas').once('value');
+                    const data = snap.val() || {};
+                    const byOrden = {};
+                    Object.keys(data).forEach(id => {
+                        const it = data[id] || {};
+                        const ord = normalizeOrderValue(it.orden || it.order || it.op || it.parcial || '');
+                        if(ord) byOrden[ord] = { id, ...it };
+                    });
+                    const updates = {};
+                    const today = getTodayDateInput();
+                    orders.forEach(ord => {
+                        const add = counts[ord] || 0;
+                        if(!add) return;
+                        if(byOrden[ord]){
+                            const prev = parseInt(byOrden[ord].cantidad || '0', 10) || 0;
+                            updates[`Ordnes_desmontadas/${byOrden[ord].id}/cantidad`] = String(prev + add);
+                        } else {
+                            const key = window.db.ref('Ordnes_desmontadas').push().key;
+                            updates[`Ordnes_desmontadas/${key}`] = {
+                                orden: ord,
+                                fecha: today,
+                                cantidad: String(add),
+                                createdAt: Date.now()
+                            };
+                        }
+                    });
+                    if(Object.keys(updates).length){
+                        await window.db.ref().update(updates);
+                    }
+                    return;
+                }catch(e){ console.warn('addOrdersToDesmontadas failed', e); }
+            }
+            updateDesmontadasListLocal(counts);
         }
 
         async function onPointerUp(ev){
@@ -3516,8 +4119,9 @@ try{
             // determine drop target
             let dropEl = document.elementFromPoint(x,y);
             const isOnBtn = dropEl && (dropEl === btnSalida || (btnSalida && btnSalida.contains(dropEl)));
+            const isOnDesmontadas = dropEl && (dropEl === btnDesmontadas || (btnDesmontadas && btnDesmontadas.contains(dropEl)));
                 if(isOnBtn){
-                    try{ triggerDropSuccess((_dragState.dragged || []).length); }catch(e){}
+                    try{ triggerDropSuccess(btnSalida, (_dragState.dragged || []).length); }catch(e){}
                     // perform abastecer-ab for all dragged blocks: collect info, save history, remove nodes,
                     // set solicitud+salida for their lines (now) and rebuild requested map from DOM.
                     const now = Date.now();
@@ -3754,11 +4358,84 @@ try{
                         }catch(e){ console.warn('⚠️ Error en sincronización post-abastecimiento:', e); }
                     }, 300);
                     
+                } else if(isOnDesmontadas){
+                    try{ triggerDropSuccess(btnDesmontadas, (_dragState.dragged || []).length); }catch(e){}
+                    const now = Date.now();
+                    const uniq = Array.from(new Set(_dragState.dragged || []));
+                    const removedBlocks = uniq.map(b => {
+                        try{
+                            const col = b.closest('.column');
+                            const line = (col && col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                            const isMissing = b.classList.contains('missing-request') || b.hasAttribute('data-missing-id');
+                            const idxRaw = b.getAttribute('data-index');
+                            const idx = isMissing ? null : parseInt(idxRaw || '-1', 10);
+                            const name = b.getAttribute('data-name') || ((b.querySelector('.label')||{}).textContent||'').trim();
+                            const missingId = b.getAttribute('data-missing-id') || null;
+                            const missingOp = b.getAttribute('data-missing-op') || name;
+                            return { el: b, line, index: idx, name, isMissing, missingId, missingOp };
+                        }catch(e){ return null; }
+                    }).filter(Boolean);
+
+                    const orderCounts = {};
+                    removedBlocks.forEach(rb => {
+                        const ord = normalizeOrderValue(rb.name || rb.missingOp || '');
+                        if(!ord) return;
+                        orderCounts[ord] = (orderCounts[ord] || 0) + 1;
+                    });
+
+                    await addOrdersToDesmontadas(orderCounts);
+
+                    // limpiar solicitudes relacionadas y missing
+                    for(const rb of removedBlocks){
+                        await queueOperation(async () => {
+                            try{
+                                if(rb.isMissing){
+                                    try{ window.removeMissingRequestByElement && window.removeMissingRequestByElement(rb.el); }catch(e){}
+                                }
+                                if(window.FirebaseSync && window.FirebaseSync.removeSolicitudByOp && rb.line){
+                                    try{ await window.FirebaseSync.removeSolicitudByOp(rb.line, rb.name || rb.missingOp || ''); }catch(e){}
+                                }
+                                if(window.db && rb.line){
+                                    try{
+                                        const hasOther = (typeof lineHasOtherFirebaseRequest === 'function') ? lineHasOtherFirebaseRequest(rb.line, rb.index, rb.name || rb.missingOp || '') : false;
+                                        if(!hasOther){
+                                            await window.db.ref(`solicitud_times/${rb.line}`).remove();
+                                            if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[rb.line];
+                                            try{ localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache || {})); }catch(e){}
+                                            try{ window.dispatchEvent(new StorageEvent('storage', { key: 'solicitud_times_firebase', newValue: JSON.stringify(window.firebaseTimestampsCache || {}) })); }catch(e){}
+                                        }
+                                    }catch(e){ }
+                                }
+                            }catch(e){ }
+                        }, `Desmontar ${rb.line}${rb.index!=null?`#${rb.index}`:'#URG'}`);
+                    }
+
+                    // quitar del DOM
+                    try{ uniq.forEach(b => { try{ if(b && b.parentNode) b.parentNode.removeChild(b); }catch(e){} }); }catch(e){}
+                    try{ ensureBlockDataAttributes(); rebuildBlockNamesFromDOM(); }catch(e){}
+                    try{ rebuildRequestedFromDOM(); }catch(e){}
+                    try{ saveState(); }catch(e){}
+                    try{ applyRequestedToDOM(); ensureTimerElements(); updateColumnTimers(); window.updateSolicitudDurationsDisplay && window.updateSolicitudDurationsDisplay(); }catch(e){}
+
+                    // sincronizar monitor en Firebase
+                    setTimeout(async ()=>{
+                        try{
+                            const currentState = getCurrentKanbanState();
+                            if(window.FirebaseSync && window.FirebaseSync.updateKanbanState){
+                                await window.FirebaseSync.updateKanbanState(currentState);
+                            }else if(window.db){
+                                await window.db.ref('monitor').set(currentState);
+                            }
+                            window._lastKanbanUpdate = JSON.stringify(currentState);
+                            localStorage.setItem('json_kanban_state', JSON.stringify(currentState, null, 2));
+                        }catch(e){}
+                    }, 200);
                 }
 
             // cleanup
             try{ if(_dragState.ghost) _dragState.ghost.remove(); }catch(e){}
             if(btnSalida) btnSalida.classList.remove('btn-drop-target','drop-ready');
+            if(btnDesmontadas) btnDesmontadas.classList.remove('btn-drop-target','drop-ready');
             // restaurar opacidad de los bloques reales
             try{ (_dragState.dragged || []).forEach(el => el.classList.remove('drag-source')); }catch(e){}
             // reactivar render de sin existencia y re-aplicar
@@ -6319,9 +6996,9 @@ try{
     <!-- INDICADOR ESCLUSA LLENA - TITILANTE -->
     <div id="esclusa-indicator" title="Click para desactivar" style="
         position: fixed !important;
-        top: calc(50% - 90px) !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+        top: 76px !important;
+        left: 160px !important;
+        transform: none !important;
         z-index: 10000 !important;
         display: none !important;
         align-items: center !important; 
@@ -6353,9 +7030,9 @@ try{
     <!-- INDICADOR ADICIONAL - TITILANTE -->
     <div id="adicional-indicator" title="Click para desactivar" style="
         position: fixed !important;
-        top: calc(50% + 90px) !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+        top: 76px !important;
+        right: 160px !important;
+        transform: none !important;
         z-index: 10000 !important;
         display: none !important;
         align-items: center !important; 
@@ -6390,6 +7067,12 @@ try{
             <button id="btn-entrada" class="color-box blue" type="button" aria-label="Abastecer Kanban vidrio" style="display:none !important;">ABASTECER<br>KANBAN VIDRIO</button>
             <button id="btn-salida" class="color-box green" type="button" aria-label="Abastecer AB">ABASTECER<br>AREA BLANCA</button>
             <button id="btn-solicitar" class="color-box orange" type="button" aria-label="Solicitar parciales">SOLICITAR<br>PARCIALES</button>
+            <div id="top-right-actions" class="top-right-actions">
+                <button id="btn-anular" type="button" aria-label="Anular">
+                    <img src="anular.png" alt="Anular" />
+                </button>
+                <button id="btn-desmontadas" class="color-box desmontadas" type="button" aria-label="Órdenes desmontadas">ORDENES<br>DESMONTADAS</button>
+            </div>
             <button id="btn-panel-control" class="color-box purple" type="button" aria-label="Panel de control">
                 <img src="ajuste.png" alt="Panel de control" class="panel-gear-icon" />
             </button>
@@ -7532,8 +8215,119 @@ try{
             });
         }
 
+        // manejar botón "Anular"
+        function bindAnularButton(){
+            const btn = document.getElementById('btn-anular');
+            if(!btn){
+                if(document.readyState === 'loading'){
+                    document.addEventListener('DOMContentLoaded', bindAnularButton, { once:true });
+                }
+                return;
+            }
+            if(btn.dataset.bound === '1') return;
+            btn.dataset.bound = '1';
+
+            const runQueued = async (fn, label)=>{
+                if(typeof queueOperation === 'function') return await queueOperation(fn, label || 'Anular');
+                return await fn();
+            };
+
+            btn.addEventListener('click', async ()=>{
+                try{ ensureBlockDataAttributes(); }catch(e){}
+                const selected = Array.from(document.querySelectorAll('.block.selected-parcial'));
+                if(selected.length === 0){
+                    try{ status.textContent = 'Selecciona un parcial para anular.'; }catch(e){}
+                    return;
+                }
+                if(!confirm(`¿Anular ${selected.length} parcial(es)?`)) return;
+
+                const uniq = Array.from(new Set(selected));
+                const removedBlocks = uniq.map(b => {
+                    try{
+                        const col = b.closest('.column');
+                        const line = (col && col.querySelector('.column-header')||{textContent:''}).textContent.trim();
+                        const isMissing = b.classList.contains('missing-request') || b.hasAttribute('data-missing-id');
+                        const idxRaw = b.getAttribute('data-index');
+                        const idx = isMissing ? null : parseInt(idxRaw || '-1', 10);
+                        const name = b.getAttribute('data-name') || ((b.querySelector('.label')||{}).textContent||'').trim();
+                        const missingOp = b.getAttribute('data-missing-op') || name;
+                        return { el: b, line, index: idx, name, isMissing, missingOp };
+                    }catch(e){ return null; }
+                }).filter(Boolean);
+
+                const lines = Array.from(new Set(removedBlocks.map(r=>r.line))).filter(Boolean);
+
+                for(const rb of removedBlocks){
+                    await runQueued(async ()=>{
+                        try{
+                            const parcialName = rb.name || rb.missingOp || (`${rb.line}#${rb.index}`);
+                            if(window.FirebaseSync && window.FirebaseSync.addAnulacion){
+                                await window.FirebaseSync.addAnulacion(rb.line, parcialName);
+                            }
+                            // quitar solicitud en Firebase (por índice si existe, y fallback por OP)
+                            if(window.db && rb.line){
+                                try{
+                                    if(Number.isFinite(rb.index)){
+                                        await window.db.ref(`solicitudes/${rb.line}/${rb.index}`).remove();
+                                    }
+                                }catch(e){}
+                            }
+                            if(window.FirebaseSync && window.FirebaseSync.removeSolicitudByOp && rb.line){
+                                try{ await window.FirebaseSync.removeSolicitudByOp(rb.line, parcialName); }catch(e){}
+                            }
+                            if(rb.isMissing){
+                                try{ window.removeMissingRequestByElement && window.removeMissingRequestByElement(rb.el); }catch(e){}
+                            }
+                        }catch(e){ }
+                    }, `Anular ${rb.line}${rb.index!=null?`#${rb.index}`:'#URG'}`);
+                }
+
+                // quitar del DOM
+                try{ uniq.forEach(b => { try{ if(b && b.parentNode) b.parentNode.removeChild(b); }catch(e){} }); }catch(e){}
+
+                // actualizar mapas/estado
+                try{ ensureBlockDataAttributes(); rebuildBlockNamesFromDOM(); }catch(e){}
+                try{ rebuildRequestedFromDOM(); }catch(e){}
+                try{ saveState(); }catch(e){}
+                try{ applyRequestedToDOM(); ensureTimerElements(); updateColumnTimers(); window.updateSolicitudDurationsDisplay && window.updateSolicitudDurationsDisplay(); }catch(e){}
+
+                // detener timers si no quedan solicitudes activas en la línea
+                try{
+                    const activeMap = collectActiveRequestsByLine();
+                    for(const line of lines){
+                        const key = normalizeLineKey(line);
+                        const hasActiveDom = activeMap.has(key);
+                        const hasOtherFb = (typeof lineHasOtherFirebaseRequest === 'function') ? lineHasOtherFirebaseRequest(line, null, '') : false;
+                        if(!hasActiveDom && !hasOtherFb && window.db){
+                            try{
+                                await window.db.ref(`solicitud_times/${line}`).remove();
+                                if(window.firebaseTimestampsCache) delete window.firebaseTimestampsCache[line];
+                                try{ localStorage.setItem('solicitud_times_firebase', JSON.stringify(window.firebaseTimestampsCache || {})); }catch(e){}
+                                try{ window.dispatchEvent(new StorageEvent('storage', { key: 'solicitud_times_firebase', newValue: JSON.stringify(window.firebaseTimestampsCache || {}) })); }catch(e){}
+                            }catch(e){}
+                        }
+                    }
+                }catch(e){}
+
+                // sincronizar monitor en Firebase
+                setTimeout(async ()=>{
+                    try{
+                        const currentState = getCurrentKanbanState();
+                        if(window.FirebaseSync && window.FirebaseSync.updateKanbanState){
+                            await window.FirebaseSync.updateKanbanState(currentState);
+                        }else if(window.db){
+                            await window.db.ref('monitor').set(currentState);
+                        }
+                        window._lastKanbanUpdate = JSON.stringify(currentState);
+                        localStorage.setItem('json_kanban_state', JSON.stringify(currentState, null, 2));
+                    }catch(e){}
+                }, 200);
+            });
+        }
+
         // asegurar binding inmediato
         bindSolicitarButton();
+        bindAnularButton();
         // Bloque específico del panel de gestión
         let render = null;
         if(listEl){
