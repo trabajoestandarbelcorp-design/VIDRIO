@@ -6581,6 +6581,52 @@ try{
         let _applyingInactiveFromFirebase = false;
         const INACTIVE_LINES_NODE = 'inactive_lines';
 
+        function getLineNameFromCol(col){
+            try{
+                const header = col.querySelector('.column-header');
+                if(!header) return '';
+                const title = header.querySelector('.column-title');
+                return (title ? title.textContent : header.textContent || '').trim();
+            }catch(e){ return ''; }
+        }
+
+        function renderCausalText(causal){
+            const words = String(causal || '').trim().split(/\s+/g).slice(0,4);
+            const line1 = words.slice(0,2).join(' ');
+            const line2 = words.slice(2,4).join(' ');
+            return line2 ? `${line1}\n${line2}` : line1;
+        }
+
+        function setLineStateForCol(colRef, lineNameRef, on, causal, opts){
+            const options = opts || {};
+            const shouldSync = options.sync !== false;
+            const input = colRef.querySelector('.line-switch-input');
+            if(input) input.checked = on;
+            colRef.classList.toggle('line-disabled', !on);
+            const storageKey = `line_toggle_${lineNameRef}`;
+            const causalKey = `line_causal_${lineNameRef}`;
+            localStorage.setItem(storageKey, on ? 'on' : 'off');
+            if(on){
+                localStorage.removeItem(causalKey);
+                colRef.dataset.lineCausal = '';
+                const old = colRef.querySelector('.line-causal');
+                if(old) old.remove();
+            } else if(causal){
+                localStorage.setItem(causalKey, causal);
+                colRef.dataset.lineCausal = causal;
+                let causalEl = colRef.querySelector('.line-causal');
+                if(!causalEl){
+                    causalEl = document.createElement('div');
+                    causalEl.className = 'line-causal';
+                    colRef.insertBefore(causalEl, colRef.querySelector('.block'));
+                }
+                causalEl.textContent = renderCausalText(causal);
+            }
+            if(shouldSync && !_applyingInactiveFromFirebase){
+                syncInactiveToFirebase(lineNameRef, on, causal);
+            }
+        }
+
         function syncInactiveToFirebase(lineName, isActive, causal){
             try{
                 if(!window.db) return;
@@ -6608,14 +6654,13 @@ try{
                     try{
                         const cols = Array.from(document.querySelectorAll('.container .column'));
                         cols.forEach(col => {
-                            const header = col.querySelector('.column-header');
-                            const lineName = (header && (header.querySelector('.column-title')||header).textContent || '').trim();
+                            const lineName = getLineNameFromCol(col);
                             if(!lineName) return;
                             const entry = data[lineName];
                             if(entry && typeof entry === 'object'){
-                                setLineState(col, lineName, false, entry.causal || '');
+                                setLineStateForCol(col, lineName, false, entry.causal || '', { sync:false });
                             } else {
-                                setLineState(col, lineName, true);
+                                setLineStateForCol(col, lineName, true, '', { sync:false });
                             }
                         });
                     }catch(e){ console.warn('apply inactive lines from firebase failed', e); }
@@ -6662,41 +6707,13 @@ try{
                     if(savedCausal) col.dataset.lineCausal = savedCausal;
                 }
 
-                function setLineState(colRef, lineNameRef, on, causal){
-                    input.checked = on;
-                    colRef.classList.toggle('line-disabled', !on);
-                    localStorage.setItem(storageKey, on ? 'on' : 'off');
-                    if(on){
-                        localStorage.removeItem(causalKey);
-                        colRef.dataset.lineCausal = '';
-                        const old = colRef.querySelector('.line-causal');
-                        if(old) old.remove();
-                    } else if(causal){
-                        localStorage.setItem(causalKey, causal);
-                        colRef.dataset.lineCausal = causal;
-                        let causalEl = colRef.querySelector('.line-causal');
-                        if(!causalEl){
-                            causalEl = document.createElement('div');
-                            causalEl.className = 'line-causal';
-                            colRef.insertBefore(causalEl, colRef.querySelector('.block'));
-                        }
-                        const words = String(causal).trim().split(/\s+/g).slice(0,4);
-                        const line1 = words.slice(0,2).join(' ');
-                        const line2 = words.slice(2,4).join(' ');
-                        causalEl.textContent = line2 ? `${line1}\n${line2}` : line1;
-                    }
-                    if(!_applyingInactiveFromFirebase){
-                        syncInactiveToFirebase(lineNameRef, on, causal);
-                    }
-                }
-
                 async function handleToggle(){
                     if(input.checked){
                         const causal = await requestTwoWordCausal(lineName);
                         if(!causal) return;
-                        setLineState(col, lineName, false, causal);
+                        setLineStateForCol(col, lineName, false, causal);
                     } else {
-                        setLineState(col, lineName, true);
+                        setLineStateForCol(col, lineName, true);
                     }
                 }
 
@@ -6714,7 +6731,7 @@ try{
                 if(!isOn){
                     const savedCausal = localStorage.getItem(causalKey);
                     if(savedCausal){
-                        setLineState(col, lineName, false, savedCausal);
+                        setLineStateForCol(col, lineName, false, savedCausal, { sync:false });
                     }
                 }
             });
