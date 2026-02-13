@@ -511,6 +511,7 @@
         const btnLimpiar = document.getElementById('btn-limpiar');
         const statusBadge = document.getElementById('status-badge');
         const historyList = document.getElementById('history-list');
+        let isSubmittingAbastecimiento = false;
 
         // Datalist ya permite escribir/seleccionar; no se requiere typeahead manual
 
@@ -521,6 +522,25 @@
             const cleaned = noZeros || '0';
             const limited = cleaned.slice(0, 8);
             return { value: limited, truncated: cleaned.length > 8 };
+        }
+
+        function canonicalParcialValue(value){
+            return normalizeParcialValue(value).value.toUpperCase();
+        }
+
+        function firebaseListToArray(raw){
+            if(!raw) return [];
+            if(Array.isArray(raw)){
+                return raw.filter(item => item !== undefined && item !== null && item !== '');
+            }
+            if(typeof raw === 'object'){
+                return Object.keys(raw)
+                    .filter(key => /^\d+$/.test(key))
+                    .sort((a,b)=>Number(a)-Number(b))
+                    .map(key => raw[key])
+                    .filter(item => item !== undefined && item !== null && item !== '');
+            }
+            return [];
         }
         
         // Actualizar estado de conexión
@@ -568,6 +588,11 @@
         // ============================================
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            if(isSubmittingAbastecimiento){
+                showNotification('⏳ Ya se está procesando un abastecimiento, espera un momento.', 'error');
+                return;
+            }
             
             if(!isConnected || !db) {
                 showNotification('❌ Sin conexión a Firebase', 'error');
@@ -580,6 +605,7 @@
             const normalized = normalizeParcialValue(rawParcialInput);
             const sanitizedParcial = normalized.value;
             const parcial = sanitizedParcial.toUpperCase();
+            const canonicalParcial = canonicalParcialValue(parcial);
             // Reflejar en el input la versión normalizada (sin ceros y máx 8 dígitos)
             ordenInput.value = sanitizedParcial;
             if(normalized.truncated){
@@ -596,6 +622,8 @@
                 showNotification('❌ Línea no existe', 'error');
                 return;
             }
+
+            isSubmittingAbastecimiento = true;
             
             // Deshabilitar botón mientras procesa
             btnAbastecer.disabled = true;
@@ -604,7 +632,12 @@
             try {
                 console.log(`🔍 Buscando solicitud para: ${linea} - ${parcial}`);
 
-                // Detectar solicitud "sin existencia" (missing-request) almacenada en localStorage
+                const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
+                const kanbanRawList = firebaseListToArray(kanbanSnap.val());
+                const canonicalKanban = kanbanRawList.map(item => canonicalParcialValue(item)).filter(Boolean);
+                const existingKanbanIndex = canonicalKanban.indexOf(canonicalParcial);
+
+                // Detectar solicitud "sin existencia" (missing-request)
                 let missingRequest = null;
                 try {
                     const missingMap = JSON.parse(localStorage.getItem('pk_missing_requests') || '{}');
@@ -617,6 +650,26 @@
                 } catch(e) {
                     console.warn('No se pudo leer pk_missing_requests', e);
                 }
+                // Fallback: leer desde Firebase (Sin_existencia)
+                if(!missingRequest){
+                    try{
+                        const sinSnap = await db.ref(`Sin_existencia/${linea.toUpperCase()}`).once('value');
+                        const target = sanitizedParcial.toUpperCase();
+                        sinSnap.forEach(child => {
+                            if(missingRequest) return;
+                            const val = child.val() || {};
+                            const opRaw = val.op || val.parcial || val.name || '';
+                            const opNorm = normalizeParcialValue(opRaw).value.toUpperCase();
+                            if(opNorm === target){
+                                missingRequest = {
+                                    id: child.key,
+                                    op: opNorm,
+                                    requestedAt: val.requestedAt || val.timestamp || Date.now()
+                                };
+                            }
+                        });
+                    }catch(e){ console.warn('No se pudo leer Sin_existencia', e); }
+                }
                 
                 // PASO 1: Buscar solicitud compatible (tanto estructura por línea como global)
                 const solicitudesSnap = await db.ref('solicitudes').once('value');
@@ -626,7 +679,7 @@
                 let solicitudPath = null;
                 let solicitudActivaEnLinea = null;
                 const upperLinea = linea.toUpperCase();
-                const upperParcial = parcial.toUpperCase();
+                const upperParcial = canonicalParcial;
 
                 // a) Estructura por línea (solicitudes/{linea}/{idx})
                 if(solicitudesData[linea] && typeof solicitudesData[linea] === 'object') {
@@ -680,16 +733,13 @@
                     const updates = {};
                     const reqAt = missingRequest.requestedAt || Date.now();
 
-                    // Leer kanban actual y agregar al final
-                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
-                    const kanbanArray = kanbanSnap.val() || [];
-                    const newIndex = kanbanArray.length;
-                    kanbanArray.push(parcial);
-                    updates[`kanban_estado/${linea}`] = kanbanArray;
-                    updates[`monitor/${linea}`] = kanbanArray;
+                    const kanbanAfterConversion = canonicalKanban.concat(canonicalParcial);
+                    const newIndex = kanbanAfterConversion.length - 1;
+                    updates[`kanban_estado/${linea}`] = kanbanAfterConversion;
+                    updates[`monitor/${linea}`] = kanbanAfterConversion;
 
                     // Crear solicitud en Firebase para que titile
-                    updates[`solicitudes/${linea}/${newIndex}`] = { parcial, requestedAt: reqAt };
+                    updates[`solicitudes/${linea}/${newIndex}`] = { parcial: canonicalParcial, requestedAt: reqAt };
 
                     // Asegurar timestamp en solicitud_times (mantener el original si existe)
                     const tsSnap = await db.ref(`solicitud_times/${linea}`).once('value');
@@ -699,6 +749,24 @@
 
                     await db.ref().update(updates);
                     console.log('✅ Solicitud sin existencia convertida a parcial solicitado en kanban/monitor');
+
+                    // Remover del nodo Sin_existencia en Firebase
+                    try{
+                        const sinRefBase = `Sin_existencia/${linea.toUpperCase()}`;
+                        if(missingRequest.id){
+                            await db.ref(`${sinRefBase}/${missingRequest.id}`).remove();
+                        } else {
+                            const sinSnap = await db.ref(sinRefBase).once('value');
+                            const target = sanitizedParcial.toUpperCase();
+                            sinSnap.forEach(child => {
+                                const val = child.val() || {};
+                                const op = String(val.op || val.parcial || val.name || '').trim().toUpperCase();
+                                if(op === target){
+                                    child.ref.remove();
+                                }
+                            });
+                        }
+                    }catch(e){ console.warn('No se pudo limpiar Sin_existencia en Firebase', e); }
 
                     // Limpiar la missing-request del localStorage y propagar a otras pestañas
                     try {
@@ -733,7 +801,7 @@
                     
                     // PASO 2: Guardar abastecimiento (estructura única en /abastecimientos con campo line)
                     const abastecimientoData = {
-                        parcial: parcial,
+                        parcial: canonicalParcial,
                         line: linea,
                         fecha: fechaActual,
                         hora: horaActual,
@@ -748,7 +816,7 @@
                     
                     // PASO 3: Guardar en historial
                     const historialData = {
-                        name: parcial,
+                        name: canonicalParcial,
                         line: linea,
                         requestedAt: requestedAt,
                         suppliedAt: now,
@@ -759,17 +827,16 @@
                     console.log('✅ Registrado en historial');
                     
                     // PASO 4: Actualizar monitor/kanban_estado (quitar el parcial de la línea)
-                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
-                    const kanbanArray = kanbanSnap.val() || [];
-                    
-                    const index = kanbanArray.findIndex(p => normalizeParcialValue(p).value.toUpperCase() === upperParcial);
-                    if(index !== -1) {
-                        kanbanArray.splice(index, 1);
+                    const updatedKanban = canonicalKanban.slice();
+                    if(existingKanbanIndex !== -1) {
+                        updatedKanban.splice(existingKanbanIndex, 1);
                         await Promise.all([
-                            db.ref(`kanban_estado/${linea}`).set(kanbanArray),
-                            db.ref(`monitor/${linea}`).set(kanbanArray)
+                            db.ref(`kanban_estado/${linea}`).set(updatedKanban),
+                            db.ref(`monitor/${linea}`).set(updatedKanban)
                         ]);
                         console.log(`✅ Parcial removido de monitor/kanban_estado/${linea}`);
+                    } else {
+                        console.warn('⚠️ Parcial no encontrado en kanban al intentar eliminarlo.');
                     }
                     
                     // PASO 5: Eliminar solicitud (según la estructura detectada)
@@ -788,10 +855,10 @@
                 } else {
                     // ===== CASO 2: SIN SOLICITUD (Abastecimiento directo) =====
                     console.log('📦 Abastecimiento directo (sin solicitud previa)...');
-                    
+
                     // PASO 2: Guardar abastecimiento (estructura única en /abastecimientos con campo line)
                     const abastecimientoData = {
-                        parcial: parcial,
+                        parcial: canonicalParcial,
                         line: linea,
                         fecha: fechaActual,
                         hora: horaActual,
@@ -807,7 +874,7 @@
                     
                     // PASO 3: Guardar en historial
                     const historialData = {
-                        name: parcial,
+                        name: canonicalParcial,
                         line: linea,
                         requestedAt: now,
                         suppliedAt: now,
@@ -818,10 +885,8 @@
                     console.log('✅ Registrado en historial');
                     
                     // PASO 4: Agregar a monitor/kanban_estado (ya que se abastece directamente)
-                    const kanbanSnap = await db.ref(`kanban_estado/${linea}`).once('value');
-                    const kanbanArray = kanbanSnap.val() || [];
+                    const kanbanArray = canonicalKanban.concat(canonicalParcial);
                     
-                    kanbanArray.push(parcial);
                     await Promise.all([
                         db.ref(`kanban_estado/${linea}`).set(kanbanArray),
                         db.ref(`monitor/${linea}`).set(kanbanArray)
@@ -839,6 +904,7 @@
                 console.error('❌ Error al abastecer:', error);
                 showNotification('❌ Error: ' + error.message, 'error');
             } finally {
+                isSubmittingAbastecimiento = false;
                 btnAbastecer.disabled = false;
                 btnAbastecer.innerHTML = '<span>✅ Abastecer</span>';
             }
