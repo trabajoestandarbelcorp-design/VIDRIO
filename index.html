@@ -2604,7 +2604,10 @@ window.FirebaseSync = {
                 const pk_block_names = {};
                 Object.keys(state).forEach(lineName => {
                     const blocks = Array.isArray(state[lineName]) ? state[lineName] : (state[lineName] && typeof state[lineName] === 'object' ? Object.values(state[lineName]) : []);
-                    const cleanBlocks = blocks.map(b => (b==null? '': String(b)));
+                    const cleanBlocks = blocks.map(b => {
+                        const fallback = b == null ? '' : String(b);
+                        return (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(fallback) : fallback) || fallback;
+                    });
                     pk_lines.push({ name: lineName, count: cleanBlocks.length, active: true });
                     if(cleanBlocks.length){
                         pk_block_names[lineName] = {};
@@ -2682,7 +2685,10 @@ async function fetchAndApplyAllFromFirebase() {
             const pk_block_names = {};
             Object.keys(kanban).forEach(lineName => {
                 const blocks = Array.isArray(kanban[lineName]) ? kanban[lineName] : (kanban[lineName] && typeof kanban[lineName] === 'object' ? Object.values(kanban[lineName]) : []);
-                const cleanBlocks = blocks.map(b => (b == null ? '' : String(b)));
+                const cleanBlocks = blocks.map(b => {
+                    const fallback = b == null ? '' : String(b);
+                    return (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(fallback) : fallback) || fallback;
+                });
                 pk_lines.push({ name: lineName, count: cleanBlocks.length, active: true });
                 if (cleanBlocks.length) {
                     pk_block_names[lineName] = {};
@@ -4459,6 +4465,16 @@ try{
             if(cleaned.length > 8) cleaned = cleaned.slice(0,8);
             return cleaned;
         }
+        function canonicalizeParcialValue(raw){
+            const str = raw == null ? '' : String(raw).trim();
+            if(!str) return '';
+            if(/^[0-9]+$/.test(str)){
+                const normalized = normalizeOrderValue(str);
+                return normalized || '';
+            }
+            return str;
+        }
+        try{ window.canonicalizeParcialValue = canonicalizeParcialValue; }catch(e){}
         function isValidOrderValue(val){
             if(!val) return false;
             return val.length <= 8 && ORDER_PREFIXES_GLOBAL.some(p => val.startsWith(p));
@@ -4505,13 +4521,15 @@ try{
                 try{ saveState(); }catch(e){ /* ignore */ }
             block.setAttribute('data-index', String(idx));
             if(blockLabel){
-                block.setAttribute('data-name', normalizedLabel || blockLabel);
-                const span = document.createElement('span'); span.className = 'label'; span.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(normalizedLabel || blockLabel) : (normalizedLabel || blockLabel); block.appendChild(span);
+                const preferredName = normalizedLabel || blockLabel;
+                const canonicalName = (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(preferredName) : preferredName) || preferredName;
+                block.setAttribute('data-name', canonicalName);
+                const span = document.createElement('span'); span.className = 'label'; span.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(canonicalName) : canonicalName; block.appendChild(span);
                 // persist name in pk_block_names
                 try{
                     const names = JSON.parse(localStorage.getItem('pk_block_names')||'{}');
                     names[lineName] = names[lineName] || {};
-                    names[lineName][String(idx)] = normalizedLabel || blockLabel;
+                    names[lineName][String(idx)] = canonicalName;
                     localStorage.setItem('pk_block_names', JSON.stringify(names));
                 }catch(e){}
             }
@@ -4858,7 +4876,16 @@ try{
                         try{
                             const namesMap = JSON.parse(localStorage.getItem('pk_block_names')||'{}');
                             const nm = namesMap[line.name] && namesMap[line.name][String(i)];
-                            if(nm){ b.setAttribute('data-name', nm); const span = document.createElement('span'); span.className='label'; span.textContent = nm; b.appendChild(span); }
+                            if(nm){
+                                const canonicalName = (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(nm) : (nm||'')) || '';
+                                if(canonicalName){
+                                    b.setAttribute('data-name', canonicalName);
+                                    const span = document.createElement('span');
+                                    span.className='label';
+                                    span.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(canonicalName) : canonicalName;
+                                    b.appendChild(span);
+                                }
+                            }
                         }catch(e){}
                         try{
                             const reqRaw = localStorage.getItem('pk_requested') || '{}';
@@ -4958,9 +4985,11 @@ try{
                         if(!blockName){
                             blockName = `Parcial ${idx+1}`;
                         }
+
+                        const canonicalName = (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(blockName) : blockName) || blockName;
                         
-                        console.log(`  📦 [${idx}] = "${blockName}"`);
-                        return blockName;
+                        console.log(`  📦 [${idx}] = "${canonicalName}"`);
+                        return canonicalName;
                     });
                     
                     // Guardar el array en orden lógico directo (sin invertir)
@@ -5365,12 +5394,18 @@ try{
                         if(b.classList.contains('missing-request')) return;
                         if(b.getAttribute('data-placeholder') === 'true') return;
                         const nm = b.getAttribute('data-name') || ((b.querySelector('.label')||{}).textContent||'').trim();
-                        if(nm) {
+                        const canonicalName = nm ? ((typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(nm) : nm) || nm) : '';
+                        if(canonicalName) {
                             map[line] = map[line] || {};
-                            map[line][String(i)] = nm;
+                            map[line][String(i)] = canonicalName;
                             // ensure data-index up to date
                             b.setAttribute('data-index', String(i));
                             b.setAttribute('data-line', line);
+                            b.setAttribute('data-name', canonicalName);
+                            const lbl = b.querySelector('.label');
+                            if(lbl){
+                                lbl.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(canonicalName) : canonicalName;
+                            }
                         }
                     });
                 });
@@ -5777,7 +5812,11 @@ try{
                             return;
                         }
                         
-                        const firebaseParciales = convertToArray(firebaseKanban[lineName]);
+                        const rawFirebaseParciales = convertToArray(firebaseKanban[lineName]);
+                        const firebaseParciales = rawFirebaseParciales.map(name => {
+                            const fallback = name == null ? '' : String(name);
+                            return (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(fallback) : fallback) || fallback;
+                        });
                         const domBlocks = Array.from(col.querySelectorAll('.block'));
                         
                         console.log(`📊 ${lineName}: Firebase=${firebaseParciales.length}, DOM=${domBlocks.length}`);
@@ -5833,7 +5872,7 @@ try{
                                     
                                     const label = document.createElement('span');
                                     label.className = 'label';
-                                    label.textContent = window.formatParcialDisplay(parcialName);
+                                    label.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(parcialName) : parcialName;
                                     block.appendChild(label);
                                     
                                     col.appendChild(block);
@@ -5954,7 +5993,10 @@ try{
                         return keys.map(k => obj[k]);
                     };
                     
-                    const parcialesArray = convertToArray(parciales);
+                    const parcialesArray = convertToArray(parciales).map(name => {
+                        const fallback = name == null ? '' : String(name);
+                        return (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(fallback) : fallback) || fallback;
+                    });
                     parcialesArray.forEach((parcialName, idx) => {
                         const block = document.createElement('div');
                         block.className = 'block appear';
@@ -5964,7 +6006,7 @@ try{
                         
                         const label = document.createElement('span');
                         label.className = 'label';
-                        label.textContent = window.formatParcialDisplay(parcialName);
+                        label.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(parcialName) : parcialName;
                         block.appendChild(label);
                         
                         newCol.appendChild(block);
@@ -8178,9 +8220,10 @@ try{
 
                         if(arr.length > 0) reqMap[key] = Array.from(new Set(arr)).sort((a,b)=>a-b); else delete reqMap[key];
                         // actualizar label/data-name con valor normalizado para consistencia visual
-                        s.setAttribute('data-name', finalBlockName);
+                        const canonicalName = (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(finalBlockName) : finalBlockName) || finalBlockName;
+                        s.setAttribute('data-name', canonicalName);
                         const lbl = s.querySelector('.label');
-                        if(lbl) lbl.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(finalBlockName) : finalBlockName;
+                        if(lbl) lbl.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(canonicalName) : canonicalName;
 
                         s.classList.remove('selected-parcial');
                     }catch(err){ console.error('solicitar loop error', err); }
@@ -9793,7 +9836,10 @@ try{
                     pk_block_names[lineName] = {};
                     blocks.forEach((blockName, idx) => {
                         if(blockName){
-                            pk_block_names[lineName][String(idx)] = blockName;
+                            const canonicalName = (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(blockName) : blockName) || blockName;
+                            if(canonicalName){
+                                pk_block_names[lineName][String(idx)] = canonicalName;
+                            }
                         }
                     });
                 });
@@ -9820,7 +9866,8 @@ try{
                                     blocks.forEach((block, idx) => {
                                         const savedName = lineNames[String(idx)];
                                         if(savedName){
-                                            block.setAttribute('data-name', savedName);
+                                            const canonicalName = (typeof canonicalizeParcialValue === 'function' ? canonicalizeParcialValue(savedName) : savedName) || savedName;
+                                            block.setAttribute('data-name', canonicalName);
                                             block.setAttribute('data-line', lineName);
                                             block.setAttribute('data-index', String(idx));
 
@@ -9831,8 +9878,8 @@ try{
                                                 label.className = 'label';
                                                 block.appendChild(label);
                                             }
-                                            label.textContent = window.formatParcialDisplay(savedName);
-                                            console.log(`🏷️ Bloque ${lineName}[${idx}] = "${savedName}"`);
+                                            label.textContent = window.formatParcialDisplay ? window.formatParcialDisplay(canonicalName) : canonicalName;
+                                            console.log(`🏷️ Bloque ${lineName}[${idx}] = "${canonicalName}"`);
                                         }
                                     });
                                 });
