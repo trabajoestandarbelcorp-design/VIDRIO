@@ -8964,6 +8964,8 @@ try{
                 #panel-sync-firebase { background:linear-gradient(90deg,#3b82f6,#0ea5e9); }
                 #panel-refresh-db { background:#6b7280; }
                 #panel-reset-firebase { background:#ef4444; }
+                #panel-clear-monitor { background:linear-gradient(90deg,#fb923c,#f97316); }
+                #panel-undo-clear { background:linear-gradient(90deg,#94a3b8,#475569); }
                 #panel-send-report { background:linear-gradient(90deg,#2563eb,#1d4ed8); }
                 #panel-change-pass { background:#10b981; }
                 #panel-control-interno .change-pass-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:12px; }
@@ -9007,6 +9009,8 @@ try{
                 <h2 style="text-align:center;">Panel de Control</h2>
                 <div class="panel-actions">
                     <button id="panel-reset-firebase">Reiniciar Firebase</button>
+                    <button id="panel-clear-monitor">Borrar parciales de monitor</button>
+                    <button id="panel-undo-clear">Deshacer borrado</button>
                     <button id="panel-send-report">Enviar reporte</button>
                 </div>
                 <div class="change-pass-row">
@@ -10322,15 +10326,34 @@ try{
         }
     })();
 
+    let lastMonitorClearBackup = null;
+
     document.addEventListener('DOMContentLoaded', ()=>{
         const panel = document.getElementById('panel-control-interno');
         const btnCerrar = document.getElementById('btn-cerrar-panel');
         const btnSync = document.getElementById('panel-sync-firebase');
         const btnRefresh = document.getElementById('panel-refresh-db');
         const btnReset = document.getElementById('panel-reset-firebase');
+        const btnClearMonitor = document.getElementById('panel-clear-monitor');
+        const btnUndoClear = document.getElementById('panel-undo-clear');
         const btnSendReport = document.getElementById('panel-send-report');
         const btnChangePass = document.getElementById('panel-change-pass');
         const inputNewPass = document.getElementById('panel-new-pass');
+
+        function updateUndoButtonState(){
+            if(!btnUndoClear) return;
+            if(lastMonitorClearBackup){
+                const ts = new Date(lastMonitorClearBackup.timestamp || Date.now());
+                const timeLabel = ts.toLocaleTimeString('es-ES');
+                btnUndoClear.disabled = false;
+                btnUndoClear.textContent = `Deshacer borrado (${timeLabel})`;
+            } else {
+                btnUndoClear.disabled = true;
+                btnUndoClear.textContent = 'Deshacer borrado';
+            }
+        }
+
+        updateUndoButtonState();
 
         async function obtenerConteoLineasDesdeLocal(){
             try{
@@ -10491,6 +10514,55 @@ try{
 </div>`;
         }
 
+        async function gatherMonitorState(){
+            const lineMap = new Map();
+
+            function addCandidate(raw){
+                const name = (raw || '').toString().trim();
+                if(!name) return;
+                const upper = name.toUpperCase();
+                if(!lineMap.has(upper)){
+                    lineMap.set(upper, name);
+                }
+            }
+
+            try{
+                const stored = JSON.parse(localStorage.getItem('pk_block_names')||'{}');
+                Object.keys(stored||{}).forEach(addCandidate);
+            }catch(_){ }
+
+            try{
+                document.querySelectorAll('.column-header').forEach(header=>{
+                    addCandidate(header.textContent || '');
+                });
+            }catch(_){ }
+
+            let kanbanData = {};
+            let monitorData = {};
+
+            if(window.db){
+                try{
+                    const [kanbanSnap, monitorSnap] = await Promise.all([
+                        window.db.ref('kanban_estado').once('value'),
+                        window.db.ref('monitor').once('value')
+                    ]);
+                    kanbanData = kanbanSnap.val() || {};
+                    monitorData = monitorSnap.val() || {};
+                    [kanbanData, monitorData].forEach(data=>{
+                        if(data && typeof data === 'object'){
+                            Object.keys(data).forEach(addCandidate);
+                        }
+                    });
+                }catch(e){ console.warn('No se pudieron obtener líneas desde Firebase', e); }
+            }
+
+            return {
+                lineKeys: Array.from(lineMap.values()).filter(Boolean),
+                kanbanData,
+                monitorData
+            };
+        }
+
         async function enviarReporte(){
             if(btnSendReport){ btnSendReport.disabled = true; btnSendReport.textContent = 'Preparando...'; }
             try{
@@ -10523,6 +10595,92 @@ try{
             try{ window.scrollTo(0,0); }catch(e){} 
         });
         if(btnSendReport){ btnSendReport.addEventListener('click', enviarReporte); }
+        if(btnUndoClear){
+            btnUndoClear.addEventListener('click', async ()=>{
+                if(!lastMonitorClearBackup){
+                    alert('No hay un borrado reciente para revertir.');
+                    return;
+                }
+                if(!window.db){ alert('Firebase no está disponible.'); return; }
+                if(!confirm('Esto restaurará el último estado guardado del monitor y sobrescribirá lo que esté visible ahora. ¿Deseas continuar?')) return;
+
+                const originalLabel = btnUndoClear.textContent;
+                btnUndoClear.disabled = true;
+                btnUndoClear.textContent = 'Restaurando...';
+
+                try{
+                    const backup = lastMonitorClearBackup;
+                    await Promise.all([
+                        window.db.ref('kanban_estado').set(backup.kanbanData || {}),
+                        window.db.ref('monitor').set(backup.monitorData || {})
+                    ]);
+                    const local = backup.local || {};
+                    if(local.pk_block_names != null){ localStorage.setItem('pk_block_names', local.pk_block_names); }
+                    else { localStorage.removeItem('pk_block_names'); }
+                    if(local.json_kanban_state != null){ localStorage.setItem('json_kanban_state', local.json_kanban_state); }
+                    else { localStorage.removeItem('json_kanban_state'); }
+                    lastMonitorClearBackup = null;
+                    alert('✅ Monitor restaurado al estado previo al borrado.');
+                    if(typeof renderPanelContent === 'function') renderPanelContent();
+                }catch(e){
+                    console.error('undo clear error', e);
+                    alert('Error al restaurar el monitor: ' + (e && e.message ? e.message : e));
+                }finally{
+                    btnUndoClear.textContent = originalLabel;
+                    updateUndoButtonState();
+                }
+            });
+        }
+        if(btnClearMonitor){
+            btnClearMonitor.addEventListener('click', async ()=>{
+                if(!window.db){ alert('Firebase no está disponible.'); return; }
+                const warning = '⚠️ Esta acción borrará todos los parciales de cada línea existente en el monitor.';
+                if(!confirm(`${warning}\n\n¿Seguro que quieres continuar?`)) return;
+                const confirmText = prompt("Escribe 'BORRAR' para confirmar la limpieza del monitor:", '');
+                if(!confirmText || confirmText.trim().toUpperCase() !== 'BORRAR'){
+                    alert('Limpieza cancelada.');
+                    return;
+                }
+
+                const originalLabel = btnClearMonitor.textContent;
+                btnClearMonitor.disabled = true;
+                btnClearMonitor.textContent = 'Borrando...';
+
+                try{
+                    const state = await gatherMonitorState();
+                    const lineKeys = state.lineKeys;
+                    if(!lineKeys.length){
+                        throw new Error('No se encontraron líneas para limpiar.');
+                    }
+                    const localBackup = {
+                        pk_block_names: localStorage.getItem('pk_block_names'),
+                        json_kanban_state: localStorage.getItem('json_kanban_state')
+                    };
+                    const updates = {};
+                    lineKeys.forEach(line => {
+                        updates[`kanban_estado/${line}`] = [];
+                        updates[`monitor/${line}`] = [];
+                    });
+                    await window.db.ref().update(updates);
+                    ['pk_block_names','json_kanban_state'].forEach(key => localStorage.removeItem(key));
+                    lastMonitorClearBackup = {
+                        timestamp: Date.now(),
+                        kanbanData: state.kanbanData || {},
+                        monitorData: state.monitorData || {},
+                        local: localBackup
+                    };
+                    alert('✅ Todos los parciales fueron eliminados del monitor.');
+                    if(typeof renderPanelContent === 'function') renderPanelContent();
+                }catch(e){
+                    console.error('clear monitor error', e);
+                    alert('Error al borrar parciales: ' + (e && e.message ? e.message : e));
+                }finally{
+                    btnClearMonitor.disabled = false;
+                    btnClearMonitor.textContent = originalLabel;
+                    updateUndoButtonState();
+                }
+            });
+        }
         // Botones de sincronizar y refrescar eliminados
         if(btnReset){ btnReset.addEventListener('click', async ()=>{
             try{
