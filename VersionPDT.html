@@ -589,6 +589,9 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            // Definir líneas de área blanca al inicio del submit
+            const AREA_BLANCA_LINES = ['PKB1','PKB2','PKB3','PKB4','PKB5','PKB6'];
+
             if(isSubmittingAbastecimiento){
                 showNotification('⏳ Ya se está procesando un abastecimiento, espera un momento.', 'error');
                 return;
@@ -800,31 +803,32 @@
                     const duration = now - requestedAt;
                     
                     // PASO 2: Guardar abastecimiento (estructura única en /abastecimientos con campo line)
-                    const abastecimientoData = {
-                        parcial: canonicalParcial,
-                        line: linea,
-                        fecha: fechaActual,
-                        hora: horaActual,
-                        requestedAt: requestedAt,
-                        suppliedAt: now,
-                        duration: duration,
-                        timestamp: now
-                    };
-                    
-                    await db.ref('abastecimientos').push(abastecimientoData);
-                    console.log(`✅ Abastecimiento guardado en: abastecimientos (root)`);
-                    
-                    // PASO 3: Guardar en historial
-                    const historialData = {
-                        name: canonicalParcial,
-                        line: linea,
-                        requestedAt: requestedAt,
-                        suppliedAt: now,
-                        duration: duration
-                    };
-                    
-                    await db.ref('historial').push(historialData);
-                    console.log('✅ Registrado en historial');
+                    if (AREA_BLANCA_LINES.includes(String(linea).toUpperCase())) {
+                        const abastecimientoData = {
+                            parcial: canonicalParcial,
+                            line: linea,
+                            fecha: fechaActual,
+                            hora: horaActual,
+                            requestedAt: requestedAt,
+                            suppliedAt: now,
+                            duration: duration,
+                            timestamp: now
+                        };
+                        await db.ref('abastecimientos').push(abastecimientoData);
+                        console.log(`✅ Abastecimiento guardado en: abastecimientos (root)`);
+                        // PASO 3: Guardar en historial
+                        const historialData = {
+                            name: canonicalParcial,
+                            line: linea,
+                            requestedAt: requestedAt,
+                            suppliedAt: now,
+                            duration: duration
+                        };
+                        await db.ref('historial').push(historialData);
+                        console.log('✅ Registrado en historial');
+                    } else {
+                        console.log(`⛔ Abastecimiento en línea NO área blanca (${linea}), no se guarda en historial ni abastecimientos.`);
+                    }
                     
                     // PASO 4: Actualizar monitor/kanban_estado (quitar el parcial de la línea)
                     const updatedKanban = canonicalKanban.slice();
@@ -855,34 +859,35 @@
                 } else {
                     // ===== CASO 2: SIN SOLICITUD (Abastecimiento directo) =====
                     console.log('📦 Abastecimiento directo (sin solicitud previa)...');
-
                     // PASO 2: Guardar abastecimiento (estructura única en /abastecimientos con campo line)
-                    const abastecimientoData = {
-                        parcial: canonicalParcial,
-                        line: linea,
-                        fecha: fechaActual,
-                        hora: horaActual,
-                        requestedAt: now,
-                        suppliedAt: now,
-                        duration: 0,
-                        timestamp: now,
-                        direct: true
-                    };
-                    
-                    await db.ref('abastecimientos').push(abastecimientoData);
-                    console.log(`✅ Abastecimiento directo guardado en: abastecimientos (root)`);
-                    
-                    // PASO 3: Guardar en historial
-                    const historialData = {
-                        name: canonicalParcial,
-                        line: linea,
-                        requestedAt: now,
-                        suppliedAt: now,
-                        duration: 0
-                    };
-                    
-                    await db.ref('historial').push(historialData);
-                    console.log('✅ Registrado en historial');
+                    if (AREA_BLANCA_LINES.includes(String(linea).toUpperCase())) {
+                        const abastecimientoData = {
+                            parcial: canonicalParcial,
+                            line: linea,
+                            fecha: fechaActual,
+                            hora: horaActual,
+                            requestedAt: now,
+                            suppliedAt: now,
+                            duration: 0,
+                            timestamp: now,
+                            direct: true
+                        };
+                        await db.ref('abastecimientos').push(abastecimientoData);
+                        console.log(`✅ Abastecimiento directo guardado en: abastecimientos (root)`);
+                        // PASO 3: Guardar en historial
+                        const historialData = {
+                            name: canonicalParcial,
+                            line: linea,
+                            requestedAt: now,
+                            suppliedAt: now,
+                            duration: 0,
+                            direct: true
+                        };
+                        await db.ref('historial').push(historialData);
+                        console.log('✅ Registrado en historial');
+                    } else {
+                        console.log(`⛔ Abastecimiento directo en línea NO área blanca (${linea}), no se guarda en historial ni abastecimientos.`);
+                    }
                     
                     // PASO 4: Agregar a monitor/kanban_estado (ya que se abastece directamente)
                     const kanbanArray = canonicalKanban.concat(canonicalParcial);
