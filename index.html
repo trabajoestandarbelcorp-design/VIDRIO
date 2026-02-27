@@ -7678,42 +7678,46 @@ try{
         if(!items.length){ items = await fetchFromLocal(); }
         if(!items.length){ items = await fetchFromFirebase(); }
 
-        const norm = items.map(it => {
-            const parcial = it.parcial || it.name || it.order || it.orden_produccion || it.orderId || it.id || '';
-            const line = it.line || it.pk || it.linea || it.lineName || '';
-            const suppliedAt = it.suppliedAt ? Number(it.suppliedAt) : (it.timestamp ? Date.parse(it.timestamp) : 0);
-            const requestedAt = it.requestedAt ? Number(it.requestedAt) : 0;
-            const fecha = it.fecha || (suppliedAt ? new Date(suppliedAt).toLocaleDateString('es-ES') : '');
-            const hora = it.hora || (suppliedAt ? new Date(suppliedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute:'2-digit', second:'2-digit' }) : '');
-            const duration = Number.isFinite(it.duration) ? Number(it.duration) : (suppliedAt && requestedAt ? suppliedAt - requestedAt : 0);
-            return { parcial, line, suppliedAt, requestedAt, fecha, hora, duration };
-        }).filter(it => it.parcial && it.line);
 
-        const sorted = norm.sort((a,b)=> (b.suppliedAt||0) - (a.suppliedAt||0)).slice(0,20);
-        if(!sorted.length){
-            list.innerHTML = '<div style="padding:24px;text-align:center;color:#475569;font-weight:700;">Sin registros disponibles</div>';
-            return;
-        }
+            // Filtrar solo líneas de área blanca PKB1 a PKB6
+            const AREA_BLANCA_LINES = ['PKB1','PKB2','PKB3','PKB4','PKB5','PKB6'];
+            const norm = items.map(it => {
+                const parcial = it.parcial || it.name || it.order || it.orden_produccion || it.orderId || it.id || '';
+                const line = (it.line || it.pk || it.linea || it.lineName || '').toUpperCase();
+                const suppliedAt = it.suppliedAt ? Number(it.suppliedAt) : (it.timestamp ? Date.parse(it.timestamp) : 0);
+                const requestedAt = it.requestedAt ? Number(it.requestedAt) : 0;
+                const fecha = it.fecha || (suppliedAt ? new Date(suppliedAt).toLocaleDateString('es-ES') : '');
+                const hora = it.hora || (suppliedAt ? new Date(suppliedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute:'2-digit', second:'2-digit' }) : '');
+                const duration = Number.isFinite(it.duration) ? Number(it.duration) : (suppliedAt && requestedAt ? suppliedAt - requestedAt : 0);
+                return { parcial, line, suppliedAt, requestedAt, fecha, hora, duration };
+            })
+            .filter(it => it.parcial && AREA_BLANCA_LINES.includes(it.line));
 
-        const frag = document.createDocumentFragment();
-        sorted.forEach(it => {
-            const li = document.createElement('li');
-            li.className = 'history-card';
-            li.innerHTML = `
-                <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
-                    <div style="font-weight:800;color:#0f172a;">OP ${it.parcial}</div>
-                    <div style="font-size:12px;color:#475569;">${it.fecha} ${it.hora}</div>
-                </div>
-                <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px;">
-                    <div style="font-weight:700;color:#0f172a;">${it.line}</div>
-                    <div style="font-size:12px;color:#0f172a;">Duración: ${formatDur(it.duration)}</div>
-                </div>`;
-            frag.appendChild(li);
-        });
+            const sorted = norm.sort((a,b)=> (b.suppliedAt||0) - (a.suppliedAt||0)).slice(0,20);
+            if(!sorted.length){
+                list.innerHTML = '<div style="padding:24px;text-align:center;color:#475569;font-weight:700;">Sin registros disponibles</div>';
+                return;
+            }
 
-        list.innerHTML = '';
-        list.appendChild(frag);
-    })();
+            const frag = document.createDocumentFragment();
+            sorted.forEach(it => {
+                const li = document.createElement('li');
+                li.className = 'history-card';
+                li.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+                        <div style="font-weight:800;color:#0f172a;">OP ${it.parcial}</div>
+                        <div style="font-size:12px;color:#475569;">${it.fecha} ${it.hora}</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px;">
+                        <div style="font-weight:700;color:#0f172a;">${it.line}</div>
+                        <div style="font-size:12px;color:#0f172a;">Duración: ${formatDur(it.duration)}</div>
+                    </div>`;
+                frag.appendChild(li);
+            });
+
+            list.innerHTML = '';
+            list.appendChild(frag);
+        })();
 
     // Colocar y permitir arrastrar el panel flotante de historial
     (function(){
@@ -10624,7 +10628,7 @@ try{
                     if(typeof renderPanelContent === 'function') renderPanelContent();
                 }catch(e){
                     console.error('undo clear error', e);
-                    alert('Error al restaurar el monitor: ' + (e && e.message ? e.message : e));
+                    alert('Error al restaurar el monitor: ' + (e && e.message ? e.message : e));        
                 }finally{
                     btnUndoClear.textContent = originalLabel;
                     updateUndoButtonState();
